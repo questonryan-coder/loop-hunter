@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Loop Hunter 🌙 — the AuraFlow game that dares you to find a repeat</title>
+<meta name="description" content="Segments are cut from real published AuraFlow sessions. One of them will repeat. Catch it. A free listening game from AuraFlow — original soundscapes for sleep, focus & calm.">
+<style>
+  :root{
+    --bg:#070b1a; --bg2:#0d1430; --ink:#eef1ff; --dim:#9aa6d6;
+    --gold:#f4c96b; --teal:#5fe3c8; --danger:#ff6b81; --card:#111a3d;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    background:radial-gradient(1200px 800px at 50% -10%, var(--bg2), var(--bg));
+    color:var(--ink); font-family:Georgia,'Times New Roman',serif;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    overflow-x:hidden;
+  }
+  #glow{position:fixed; inset:0; z-index:0; pointer-events:none;}
+  main{position:relative; z-index:1; width:100%; max-width:560px; padding:20px 18px 40px; text-align:center;}
+  .moon{font-size:2.4rem; filter:drop-shadow(0 0 18px rgba(244,201,107,.55));}
+  h1{font-size:2rem; letter-spacing:.14em; margin:.15em 0 .1em; font-weight:normal;}
+  h1 b{color:var(--gold); font-weight:normal;}
+  .tag{color:var(--dim); font-style:italic; font-size:.95rem; margin:0 0 8px;}
+  .screen{display:none;}
+  .screen.on{display:block;}
+  .card{
+    background:rgba(17,26,61,.85); border:1px solid rgba(154,166,214,.25);
+    border-radius:16px; padding:20px 18px; margin:16px 0; line-height:1.55;
+  }
+  .card p{margin:.5em 0;}
+  .small{font-size:.85rem; color:var(--dim);}
+  button{
+    font-family:inherit; cursor:pointer; border:none; border-radius:999px;
+    transition:transform .08s ease, box-shadow .2s ease, background .2s ease;
+  }
+  button:active{transform:scale(.97);}
+  .big-start{
+    background:linear-gradient(180deg,#ffe1a0,var(--gold)); color:#231a04;
+    font-size:1.25rem; letter-spacing:.06em; padding:16px 38px; margin-top:10px;
+    box-shadow:0 0 28px rgba(244,201,107,.35);
+  }
+  #hud{
+    display:flex; justify-content:space-between; gap:8px; margin:14px 0 4px;
+    font-size:.95rem; color:var(--dim);
+  }
+  #hud b{display:block; color:var(--ink); font-size:1.35rem; font-weight:normal;}
+  #hud .streak b{color:var(--gold);}
+  #nowplaying{margin:10px 0 2px; font-size:1.05rem; letter-spacing:.08em; color:var(--teal); min-height:1.4em;}
+  #progressbar{height:6px; background:rgba(154,166,214,.2); border-radius:3px; overflow:hidden; margin:10px 2px 18px;}
+  #progress{height:100%; width:0%; background:linear-gradient(90deg,var(--teal),var(--gold));}
+  #loopbtn{
+    width:min(78vw,320px); height:min(78vw,320px); border-radius:50%;
+    background:radial-gradient(circle at 50% 35%, #2a3a7d, #141f4a 70%);
+    border:3px solid var(--gold); color:var(--gold);
+    font-size:1.55rem; letter-spacing:.1em; line-height:1.3;
+    box-shadow:0 0 44px rgba(244,201,107,.28), inset 0 0 44px rgba(0,0,0,.5);
+    touch-action:manipulation; user-select:none;
+  }
+  #loopbtn small{display:block; font-size:.8rem; color:var(--dim); letter-spacing:.16em; margin-top:6px;}
+  #loopbtn:disabled{opacity:.45;}
+  #feedback{min-height:1.6em; font-size:1.1rem; margin:14px 0 0;}
+  .flash-good{color:var(--teal);} .flash-bad{color:var(--danger);}
+  .final-score{font-size:2.6rem; color:var(--gold); margin:.1em 0;}
+  .links a{color:var(--teal); text-decoration:none; border-bottom:1px dotted var(--teal);}
+  .links a:hover{color:var(--gold);}
+  .ghost{
+    background:transparent; color:var(--dim); border:1px solid rgba(154,166,214,.4);
+    padding:10px 22px; font-size:1rem; margin:6px 4px;
+  }
+  .share{
+    background:linear-gradient(180deg,#8ff5dd,var(--teal)); color:#04382c;
+    padding:13px 30px; font-size:1.05rem; margin:8px 4px;
+    box-shadow:0 0 22px rgba(95,227,200,.3);
+  }
+  footer{position:relative; z-index:1; color:var(--dim); font-size:.78rem; padding:0 16px 26px; text-align:center;}
+</style>
+</head>
+<body>
+<canvas id="glow"></canvas>
+<main>
+  <div class="moon">🌙</div>
+  <h1>LOOP <b>HUNTER</b></h1>
+  <p class="tag">the AuraFlow game that dares you to find a repeat</p>
+
+  <!-- START -->
+  <section id="start" class="screen on">
+    <div class="card">
+      <p><b>How it works:</b> you'll hear a stream of short soundscape segments, one after another. Each one is unique — until it isn't.</p>
+      <p>Somewhere in the stream, <b>one earlier segment will secretly play again.</b> The moment you believe what you're hearing is the repeat, hit the big button.</p>
+      <p>Catch it and your streak grows. Cry wolf on a fresh segment — or let the loop slip past — and the run ends.</p>
+      <p class="small">Every segment is cut from a real, published AuraFlow session. No tricks, no fakes — just your ears against the stream. Headphones recommended. 🎧</p>
+    </div>
+    <button class="big-start" id="startbtn">▶ Start Listening</button>
+    <p class="small" id="bestline"></p>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="screen">
+    <div id="hud">
+      <div class="streak">STREAK<b id="h-streak">0</b></div>
+      <div>SCORE<b id="h-score">0</b></div>
+      <div>ROUND<b id="h-round">1</b></div>
+    </div>
+    <div id="nowplaying">Segment #1</div>
+    <div id="progressbar"><div id="progress"></div></div>
+    <button id="loopbtn">THAT'S<br>A LOOP!<small>tap when this segment is the repeat</small></button>
+    <div id="feedback"></div>
+  </section>
+
+  <!-- GAME OVER -->
+  <section id="over" class="screen">
+    <div class="card">
+      <p id="over-reason" style="font-size:1.15rem;"></p>
+      <div class="final-score" id="final-score">0</div>
+      <p class="small" id="final-detail"></p>
+      <p>This was <b>100% real AuraFlow audio</b> — cut from the full hour-long sessions. The complete sessions live at <b>auraflowfocus.com</b>: Pro unlocks all 60+ soundscapes for sleep, focus &amp; calm — $9/mo.</p>
+      <p class="links">
+        🎧 <a href="https://auraflowfocus.com" target="_blank" rel="noopener">auraflowfocus.com</a><br>
+        ▶️ <a href="https://www.youtube.com/@AuraFlowSleep" target="_blank" rel="noopener">YouTube — @AuraFlowSleep</a><br>
+        🎵 <a href="https://open.spotify.com/show/2KHJbW1DuMM6CTgnUAAyqK" target="_blank" rel="noopener">Spotify — AuraFlow</a>
+      </p>
+      <button class="share" id="sharebtn">Share my hunt 📤</button>
+      <button class="ghost" id="againbtn">Hunt again</button>
+      <p class="small" id="share-note"></p>
+    </div>
+  </section>
+</main>
+<footer>Loop Hunter v1 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain &amp; Gothic Cathedral.</footer>
+
+<script>
+"use strict";
+/* ---------- Loop Hunter v1 ----------
+   Pool: 24 neutral segments cut from real AuraFlow masters.
+   Round flow: shuffled unique draws; exactly ONE repeat of an
+   already-played segment is inserted after a minimum number of
+   uniques (fewer required as rounds advance). Catch it by tapping
+   while it plays. False tap or letting it finish = game over.   */
+
+var POOL = [];
+for (var i = 1; i <= 24; i++) POOL.push("segments/seg" + (i < 10 ? "0" + i : i) + ".mp3");
+var GAME_URL = "https://questonryan-coder.github.io/loop-hunter/";
+
+var audio = new Audio();
+audio.preload = "auto";
+
+var state = {
+  streak: 0, score: 0, round: 0,
+  queue: [],          // upcoming unique segment srcs
+  playedThisRound: [],// srcs already played this round
+  repeatSrc: null,    // the segment that will repeat
+  repeatIn: -1,       // segments remaining until repeat plays
+  current: null,      // {src, isRepeat}
+  segIndex: 0,        // segments played this round (display)
+  playing: false,
+  over: false
+};
+
+var $ = function (id) { return document.getElementById(id); };
+var screens = { start: $("start"), game: $("game"), over: $("over") };
+function show(name) {
+  for (var k in screens) screens[k].classList.toggle("on", k === name);
+}
+
+function best() {
+  return {
+    streak: parseInt(localStorage.getItem("lh_bestStreak") || "0", 10),
+    score: parseInt(localStorage.getItem("lh_bestScore") || "0", 10)
+  };
+}
+function saveBest() {
+  var b = best();
+  if (state.streak > b.streak) localStorage.setItem("lh_bestStreak", String(state.streak));
+  if (state.score > b.score) localStorage.setItem("lh_bestScore", String(state.score));
+}
+function renderBestLine() {
+  var b = best();
+  $("bestline").textContent = b.streak > 0
+    ? "Your best: " + b.streak + " loop" + (b.streak === 1 ? "" : "s") + " caught · score " + b.score
+    : "";
+}
+renderBestLine();
+
+function shuffle(a) {
+  for (var j = a.length - 1; j > 0; j--) {
+    var k = Math.floor(Math.random() * (j + 1)), t = a[j]; a[j] = a[k]; a[k] = t;
+  }
+  return a;
+}
+
+/* Minimum unique segments before the repeat may appear — shrinks as rounds advance. */
+function minUniques(round) { return Math.max(3, 7 - round); } // r1:6 r2:5 r3:4 r4+:3
+
+function startRound() {
+  state.round++;
+  state.queue = shuffle(POOL.slice());
+  state.playedThisRound = [];
+  state.segIndex = 0;
+  state.over = false;
+  /* choose the repeat victim & timing up front:
+     after minU uniques, the repeat lands within the next 1–3 segments. */
+  var m = minUniques(state.round);
+  state.repeatIn = m + Math.floor(Math.random() * 3); // countdown in segments
+  state.repeatSrc = null; // picked once enough uniques have played
+  updateHUD();
+  nextSegment();
+}
+
+function nextSegment() {
+  if (state.over) return;
+  var isRepeat = false, src;
+  if (state.repeatIn === 0 && state.repeatSrc) {
+    src = state.repeatSrc; isRepeat = true;
+  } else {
+    src = state.queue.shift();
+    if (state.repeatIn > 0) state.repeatIn--;
+    if (state.repeatIn === 0 && !state.repeatSrc && state.playedThisRound.length > 0) {
+      /* arm the repeat for the NEXT segment slot after one more unique may pass:
+         pick victim now; it will play when repeatIn hits 0. */
+      state.repeatSrc = state.playedThisRound[Math.floor(Math.random() * state.playedThisRound.length)];
+      state.repeatIn = Math.floor(Math.random() * 2); // 0 = next segment, 1 = one more unique first
+      if (state.repeatIn === 0) { /* victim plays as this next segment instead */
+        /* swap: put the just-drawn unique back, play victim now */
+        state.queue.unshift(src);
+        src = state.repeatSrc; isRepeat = true;
+      }
+    }
+  }
+  state.current = { src: src, isRepeat: isRepeat };
+  if (!isRepeat) state.playedThisRound.push(src);
+  state.segIndex++;
+  $("nowplaying").textContent = "Segment #" + state.segIndex;
+  $("progress").style.width = "0%";
+  seedVisual(src);
+  audio.src = src;
+  state.playing = true;
+  audio.play().catch(function () { /* gesture already given; ignore */ });
+}
+
+audio.addEventListener("timeupdate", function () {
+  if (audio.duration) $("progress").style.width = (100 * audio.currentTime / audio.duration) + "%";
+});
+
+audio.addEventListener("ended", function () {
+  if (state.over || !state.current) return;
+  if (state.current.isRepeat) {
+    /* the loop played through uncaught */
+    gameOver(false, "The loop slipped past you — that last segment was the repeat, and it played out uncaught. 🌫️");
+    return;
+  }
+  state.score++; updateHUD();
+  state.playing = false;
+  setTimeout(nextSegment, 650); // a breath of night between segments
+});
+
+$("loopbtn").addEventListener("click", function () {
+  if (state.over || !state.current || !state.playing) return;
+  if (state.current.isRepeat) {
+    state.score++;               // the caught repeat counts as survived
+    state.streak++;
+    saveBest(); updateHUD();
+    feedback("🎯 Caught it! That WAS the repeat.", true);
+    state.playing = false;
+    audio.pause();
+    var btn = $("loopbtn"); btn.disabled = true;
+    setTimeout(function () {
+      btn.disabled = false;
+      feedback("", true);
+      startRound();
+    }, 1400);
+  } else {
+    gameOver(false, "False alarm — that segment was brand new, never played before. The stream stays undefeated… this time. 🌙");
+  }
+});
+
+function feedback(msg, good) {
+  var f = $("feedback");
+  f.textContent = msg;
+  f.className = good ? "flash-good" : "flash-bad";
+}
+
+function updateHUD() {
+  $("h-streak").textContent = state.streak;
+  $("h-score").textContent = state.score;
+  $("h-round").textContent = Math.max(1, state.round);
+}
+
+function gameOver(_, reason) {
+  state.over = true; state.playing = false;
+  audio.pause();
+  saveBest();
+  var b = best();
+  $("over-reason").textContent = reason;
+  $("final-score").textContent = state.score;
+  $("final-detail").textContent =
+    "Loops caught: " + state.streak + " · Rounds survived: " + state.round +
+    " · Your best streak: " + b.streak + " · Best score: " + b.score;
+  show("over");
+}
+
+$("startbtn").addEventListener("click", function () {
+  state.streak = 0; state.score = 0; state.round = 0;
+  updateHUD();
+  show("game");
+  startRound();
+});
+$("againbtn").addEventListener("click", function () {
+  state.streak = 0; state.score = 0; state.round = 0;
+  $("share-note").textContent = "";
+  updateHUD();
+  show("game");
+  startRound();
+});
+
+$("sharebtn").addEventListener("click", function () {
+  var text = "I caught " + state.streak + " loop" + (state.streak === 1 ? "" : "s") +
+    " and survived " + state.score + " segments in Loop Hunter — the AuraFlow game that dares you to find a repeat 🌙 " + GAME_URL;
+  if (navigator.share) {
+    navigator.share({ title: "Loop Hunter 🌙", text: text }).catch(function () {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function () {
+      $("share-note").textContent = "Copied — paste it anywhere. 📋";
+    });
+  } else {
+    $("share-note").textContent = text;
+  }
+});
+
+/* ---------- generative ambience visual, seeded per segment ----------
+   Same segment => same seed => same look. The repeat LOOKS the same too.
+   That's fair: this is a perception game. */
+var cv = $("glow"), ctx = cv.getContext("2d"), parts = [], frame = 0;
+function resize() { cv.width = innerWidth; cv.height = innerHeight; }
+addEventListener("resize", resize); resize();
+function hashStr(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; } return h; }
+function seedVisual(src) {
+  var seed = hashStr(src), rnd = seed;
+  function rand() { rnd = (rnd * 1103515245 + 12345) & 0x7fffffff; return rnd / 0x7fffffff; }
+  var hueBase = 215 + Math.floor(rand() * 60);       // deep blues → violet
+  var gold = rand() > 0.55;
+  parts = [];
+  for (var i = 0; i < 70; i++) {
+    parts.push({
+      x: rand(), y: rand(), r: 0.6 + rand() * 2.2,
+      s: 0.0006 + rand() * 0.0022, ph: rand() * Math.PI * 2,
+      hue: gold && i % 9 === 0 ? 44 : hueBase + rand() * 26 - 13,
+      a: 0.25 + rand() * 0.55
+    });
+  }
+}
+seedVisual("segments/seg01.mp3");
+(function draw() {
+  requestAnimationFrame(draw);
+  frame++;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  for (var i = 0; i < parts.length; i++) {
+    var p = parts[i];
+    var y = (p.y - frame * p.s) % 1; if (y < 0) y += 1;
+    var x = p.x + Math.sin(frame / 90 + p.ph) * 0.008;
+    ctx.beginPath();
+    ctx.arc(x * cv.width, y * cv.height, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = "hsla(" + p.hue + ",85%,72%," + (p.a * (0.7 + 0.3 * Math.sin(frame / 40 + p.ph))) + ")";
+    ctx.shadowColor = "hsla(" + p.hue + ",90%,65%,.8)"; ctx.shadowBlur = 8;
+    ctx.fill(); ctx.shadowBlur = 0;
+  }
+})();
+</script>
+</body>
+</html>
