@@ -127,6 +127,22 @@
     background:rgba(7,11,26,.6); border:1px dashed rgba(154,166,214,.4); border-radius:10px;
     padding:12px; font-size:.95rem; line-height:1.5; white-space:pre-line; margin:10px 0;
   }
+  /* ---------- v1.3 additions ---------- */
+  #hintbtn{margin-top:4px;}
+  #hint-indicator{
+    color:var(--gold); font-size:1.05rem; letter-spacing:.06em; margin:12px 0 0;
+    text-shadow:0 0 14px rgba(244,201,107,.6);
+    animation:hintpulse 1.2s ease-in-out infinite;
+  }
+  @keyframes hintpulse{ 0%,100%{opacity:.4} 50%{opacity:1} }
+  .stats-grid{text-align:left; max-width:340px; margin:10px auto 4px;}
+  .stat-row{
+    display:flex; justify-content:space-between; gap:12px;
+    padding:5px 2px; border-bottom:1px dashed rgba(154,166,214,.25);
+  }
+  .stat-row b{color:var(--gold); font-weight:normal; white-space:nowrap;}
+  .pb-line{color:var(--gold); font-size:1.12rem; margin:.4em 0;}
+  .milestone-line{color:var(--gold); font-size:1.08rem; margin:.4em 0;}
   footer{position:relative; z-index:1; color:var(--dim); font-size:.78rem; padding:0 16px 26px; text-align:center;}
 </style>
 </head>
@@ -147,12 +163,20 @@
     </div>
     <button class="big-start" id="startbtn">▶ Start Listening</button>
     <p class="small" id="bestline"></p>
+    <p><button class="ghost" id="statsbtn">📊 Your stats</button></p>
+    <div class="card" id="stats-card" style="display:none;">
+      <p style="margin-bottom:.2em;">📊 <b>Your stats</b></p>
+      <div class="stats-grid" id="stats-body"></div>
+      <p class="small">Streaks count Daily Challenge days (Phoenix time). Everything lives only in this browser — no account, no tracking.</p>
+    </div>
     <div class="card" id="daily-home">
       <p style="font-size:1.15rem; margin-bottom:.2em;">☀️ <b>Daily Challenge</b></p>
       <p id="daily-label" style="margin:.2em 0;">Today's hunt</p>
       <p class="small">One hidden repeat, the same stream for every hunter today. Your first finished attempt is the one that counts.</p>
       <button class="daily-start" id="dailybtn">Play today's hunt</button>
       <p class="small" id="daily-status"></p>
+      <p class="milestone-line" id="daily-milestone-home" style="display:none;"></p>
+      <p class="small" id="daily-countdown"></p>
     </div>
     <div class="card" id="shelf" style="display:none;">
       <p style="margin-bottom:.2em;">🔓 <b>Your unlocked sessions</b></p>
@@ -173,6 +197,8 @@
     <div id="progressbar"><div id="progress"></div></div>
     <button id="loopbtn">THAT'S<br>A LOOP!<small>tap when this segment is the repeat</small></button>
     <div id="feedback"></div>
+    <p style="margin:10px 0 0;"><button class="ghost" id="hintbtn" style="display:none;">💡 Hint (one per day)</button></p>
+    <p id="hint-indicator" style="display:none;">👂 the loop is close… listen sharp</p>
   </section>
 
   <!-- GAME OVER -->
@@ -181,6 +207,7 @@
       <p id="over-reason" style="font-size:1.15rem;"></p>
       <div class="final-score" id="final-score">0</div>
       <p class="small" id="final-detail"></p>
+      <p class="pb-line" id="pb-line" style="display:none;"></p>
       <p>This was <b>100% real AuraFlow audio</b> — cut from the full hour-long sessions. The complete sessions live at <b>auraflowfocus.com</b>: Pro unlocks all 60+ soundscapes for sleep, focus &amp; calm — $9/mo.</p>
       <p class="links">
         🎧 <a href="https://auraflowfocus.com" target="_blank" rel="noopener">auraflowfocus.com</a><br>
@@ -207,14 +234,16 @@
     <div class="card" id="daily-card" style="display:none;">
       <p style="font-size:1.15rem;">☀️ <b>Daily Challenge — result</b></p>
       <p class="small" id="daily-note"></p>
+      <p class="milestone-line" id="daily-milestone" style="display:none;"></p>
       <div class="sharetext" id="daily-sharetext"></div>
       <button class="share" id="dcopybtn">Copy result 📋</button>
       <button class="share" id="dsharebtn" style="display:none;">Share 📤</button>
       <p class="small" id="daily-share-note"></p>
+      <p class="small" id="daily-countdown-over"></p>
     </div>
   </section>
 </main>
-<footer>Loop Hunter v1.2 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour &amp; Pumpkin Hollow.</footer>
+<footer>Loop Hunter v1.3 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour &amp; Pumpkin Hollow.</footer>
 
 <script>
 "use strict";
@@ -274,6 +303,24 @@ function phoenixLabel(d) {
     timeZone: "America/Phoenix", month: "short", day: "numeric", year: "numeric"
   }).format(d || new Date());
 }
+/* ---------- v1.3: Phoenix wall-clock helpers (for the daily countdown) ---------- */
+function phoenixClock(d) {
+  var parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Phoenix", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+  }).formatToParts(d || new Date());
+  var o = {};
+  for (var i = 0; i < parts.length; i++) o[parts[i].type] = parts[i].value;
+  return { h: parseInt(o.hour, 10) % 24, m: parseInt(o.minute, 10), s: parseInt(o.second, 10) };
+}
+function secsToPhoenixMidnight() {
+  var c = phoenixClock();
+  return 86400 - (c.h * 3600 + c.m * 60 + c.s);
+}
+function fmtCountdown(totalSec) {
+  totalSec = Math.max(0, Math.floor(totalSec));
+  var h = Math.floor(totalSec / 3600), m = Math.floor(totalSec % 3600 / 60), s = totalSec % 60;
+  return ("0" + h).slice(-2) + ":" + ("0" + m).slice(-2) + ":" + ("0" + s).slice(-2);
+}
 function keyToDate(key) {
   return new Date(Math.floor(key / 10000), Math.floor(key / 100) % 100 - 1, key % 100);
 }
@@ -323,7 +370,11 @@ var state = {
   curDur: 0,          // duration (s) of the current segment
   loopOffset: null,   // round-offset (s) where the repeat segment began
   lastUnlock: null,   // session name unlocked most recently this run
-  dailyPlan: null     // today's daily plan {victim, stream, key}
+  dailyPlan: null,    // today's daily plan {victim, stream, key}
+  /* v1.3 */
+  hintWin: null,      // armed hint window {start, end} on the round timeline (s)
+  hintThisAttempt: false, // hint pressed during the current daily attempt
+  pbText: ""          // personal-best line earned this run, shown on the result screen
 };
 
 var $ = function (id) { return document.getElementById(id); };
@@ -498,6 +549,7 @@ function recordDaily(result) {
   if (store.lastKey === shiftKey(key, -1)) store.streak = (store.streak || 0) + 1;
   else if (store.lastKey !== key) store.streak = 1;
   store.lastKey = key;
+  store.bestStreak = Math.max(store.bestStreak || 0, store.streak || 0); // v1.3: stats view
   store.plays[key] = result;
   saveDailyStore(store);
   return result;
@@ -508,7 +560,9 @@ function dailyShareText(result, store, key) {
   else if (result.outcome === "missed") line = "The loop slipped past me at " + fmtClock(result.atTime);
   else line = "I cried wolf at " + fmtClock(result.atTime);
   var text = "🎧 Loop Hunter Daily — " + phoenixLabel() + " · " + line +
+             (result.hint ? " · hint used" : "") +
              " · " + huntsThisWeek(store, key) + " hunt" + (huntsThisWeek(store, key) === 1 ? "" : "s") + " this week";
+  if (result.strip) text += "\n" + result.strip; // v1.3: spoiler-free visual strip
   if ((store.streak || 0) > 1) text += "\n🔥 " + store.streak + "-day streak";
   return text + "\n" + GAME_URL;
 }
@@ -527,6 +581,10 @@ function renderDailyHome() {
   }
   if (store.streak) status += (status ? " " : "") + "🔥 " + store.streak + "-day streak";
   $("daily-status").textContent = status;
+  /* v1.3: streak milestone celebration on the home card */
+  var hms = milestoneText(currentDailyStreak(store)), hmel = $("daily-milestone-home");
+  if (hms) { hmel.textContent = hms; hmel.style.display = "block"; }
+  else hmel.style.display = "none";
 }
 
 function shuffle(a) {
@@ -593,10 +651,12 @@ function nextSegment() {
   audio.src = src;
   state.playing = true;
   audio.play().catch(function () { /* gesture already given; ignore */ });
+  updateHintIndicator();
 }
 
 audio.addEventListener("timeupdate", function () {
   if (audio.duration) $("progress").style.width = (100 * audio.currentTime / audio.duration) + "%";
+  updateHintIndicator();
 });
 
 audio.addEventListener("ended", function () {
@@ -623,6 +683,10 @@ $("loopbtn").addEventListener("click", function () {
     state.streak++;
     saveBest(); updateHUD();
     var nm = nearMissInfo("caught", guess, state.loopOffset, {});
+    /* v1.3: stats + personal best (fastest catch, by time into the round) */
+    if (recordStatsRound("caught", guess, nm.dist)) {
+      state.pbText = "⚡ New best: caught in " + fmtClock(guess) + "!";
+    }
     var name = segSource(state.current.src);
     var isNew = recordUnlock(name);
     if (name) state.lastUnlock = name;
@@ -635,7 +699,8 @@ $("loopbtn").addEventListener("click", function () {
       return;
     }
     feedback("🎯 Caught it! That WAS the repeat.\n" + nm.text +
-             (name ? "\n🔓 Unlocked: " + name + (isNew ? " — added to your shelf on the home screen." : " (already on your shelf)") : ""), true);
+             (name ? "\n🔓 Unlocked: " + name + (isNew ? " — added to your shelf on the home screen." : " (already on your shelf)") : "") +
+             (state.pbText ? "\n" + state.pbText : ""), true);
     var btn = $("loopbtn"); btn.disabled = true;
     setTimeout(function () {
       btn.disabled = false;
@@ -682,6 +747,13 @@ function gameOver(_, reason, nm) {
   state.over = true; state.playing = false;
   audio.pause();
   saveBest();
+  /* v1.3: stats for run-ending outcomes (catches are recorded at the tap) */
+  if (nm && nm.kind === "early") recordStatsRound("wolf", null, nm.dist);
+  else if (nm && nm.kind === "missed") recordStatsRound("missed", null, nm.dist);
+  var pbl = $("pb-line");
+  if (state.pbText) { pbl.textContent = state.pbText; pbl.style.display = "block"; }
+  else pbl.style.display = "none";
+  $("hint-indicator").style.display = "none";
   var b = best();
   $("over-reason").textContent = reason;
   if (state.mode === "daily") {
@@ -694,6 +766,10 @@ function gameOver(_, reason, nm) {
       : "";
     $("daily-card").style.display = "block";
     $("daily-note").textContent = "Your first finished attempt of the day is the official one — replays are practice.";
+    /* v1.3: streak milestone celebration on the result */
+    var mst = milestoneText(store.streak || 0), mel = $("daily-milestone");
+    if (mst && rec) { mel.textContent = mst; mel.style.display = "block"; }
+    else mel.style.display = "none";
     $("daily-sharetext").textContent = rec ? dailyShareText(rec, store, key) : "";
     $("dsharebtn").style.display = navigator.share ? "inline-block" : "none";
     $("daily-share-note").textContent = "";
@@ -710,9 +786,14 @@ function gameOver(_, reason, nm) {
   show("over");
 }
 
-/* Record today's official daily result (first completion only). */
+/* Record today's official daily result (first completion only).
+   v1.3: the record also carries the spoiler-free share strip and the
+   hint flag, so the share text can show both. */
 function finishDaily(outcome, atTime, nm) {
-  recordDaily({ outcome: outcome, atTime: Math.round(atTime * 10) / 10, dist: nm ? Math.round(nm.dist * 10) / 10 : null });
+  var dist = nm ? Math.round(nm.dist * 10) / 10 : null;
+  recordDaily({ outcome: outcome, atTime: Math.round(atTime * 10) / 10, dist: dist,
+                strip: dailyStrip(outcome, nm ? nm.dist : null),
+                hint: !!state.hintThisAttempt });
 }
 
 function startDaily() {
@@ -722,6 +803,10 @@ function startDaily() {
   state.script = state.dailyPlan.stream.slice();
   state.streak = 0; state.score = 0; state.round = 0;
   state.lastUnlock = null;
+  /* v1.3: fresh hint state per attempt (one hint per day, enforced by the store) */
+  state.hintWin = null; state.hintThisAttempt = false; state.pbText = "";
+  $("hint-indicator").style.display = "none";
+  renderHintBtn();
   $("mode-line").textContent = "☀️ DAILY CHALLENGE — " + phoenixLabel().toUpperCase();
   updateHUD();
   show("game");
@@ -754,6 +839,8 @@ $("dsharebtn").addEventListener("click", function () {
 
 $("startbtn").addEventListener("click", function () {
   state.mode = "free"; state.script = null; state.lastUnlock = null;
+  state.hintWin = null; state.hintThisAttempt = false; state.pbText = "";
+  renderHintBtn(); // free play stays pure: no hint button
   $("mode-line").textContent = "";
   state.streak = 0; state.score = 0; state.round = 0;
   updateHUD();
@@ -762,7 +849,7 @@ $("startbtn").addEventListener("click", function () {
 });
 $("againbtn").addEventListener("click", function () {
   if (state.mode === "daily") { startDaily(); return; }
-  state.lastUnlock = null;
+  state.lastUnlock = null; state.pbText = "";
   state.streak = 0; state.score = 0; state.round = 0;
   $("share-note").textContent = "";
   updateHUD();
@@ -784,9 +871,157 @@ $("sharebtn").addEventListener("click", function () {
   }
 });
 
+/* ---------- v1.3: stats (Wordle-style, localStorage only) ----------
+   lh_stats_v1: { played, caught, fastestCatch (s into the round),
+   closestMiss (s, from false-alarm calls) }. "Played" counts every
+   completed round in both modes — a catch completes a round, a false
+   alarm or a slipped loop ends one. Daily streaks live in lh_daily_v1
+   (daily-only, as in v1.2); bestStreak is tracked there too.          */
+function statsStore() {
+  try { return JSON.parse(localStorage.getItem("lh_stats_v1") || "{}"); }
+  catch (e) { return {}; }
+}
+function saveStats(s) { localStorage.setItem("lh_stats_v1", JSON.stringify(s)); }
+/* Returns true when the catch beat the stored personal best. */
+function recordStatsRound(outcome, atTime, dist) {
+  var s = statsStore(), pb = false;
+  s.played = (s.played || 0) + 1;
+  if (outcome === "caught") {
+    s.caught = (s.caught || 0) + 1;
+    if (s.fastestCatch !== null && s.fastestCatch !== undefined && atTime < s.fastestCatch) pb = true;
+    if (s.fastestCatch === null || s.fastestCatch === undefined || atTime < s.fastestCatch) {
+      s.fastestCatch = Math.round(atTime * 10) / 10;
+    }
+  } else if (outcome === "wolf") {
+    var a = Math.abs(dist || 0);
+    if (s.closestMiss === null || s.closestMiss === undefined || a < s.closestMiss) {
+      s.closestMiss = Math.round(a * 10) / 10;
+    }
+  }
+  saveStats(s);
+  return pb;
+}
+function currentDailyStreak(store) {
+  var key = phoenixKey();
+  if (store.lastKey === key || store.lastKey === shiftKey(key, -1)) return store.streak || 0;
+  return 0; // last hunt was longer ago than yesterday — the streak has lapsed
+}
+function renderStats() {
+  var s = statsStore(), store = dailyStore();
+  var played = s.played || 0, caught = s.caught || 0;
+  var pct = played ? Math.round(100 * caught / played) : 0;
+  var cur = currentDailyStreak(store), bst = store.bestStreak || cur;
+  function days(n) { return n + (n === 1 ? " day" : " days"); }
+  var rows = [
+    ["Hunts played", String(played)],
+    ["Loops caught", caught + (played ? " (" + pct + "%)" : "")],
+    ["Current streak · daily", days(cur)],
+    ["Best streak · daily", days(bst)],
+    ["Fastest catch", s.fastestCatch !== null && s.fastestCatch !== undefined ? fmtClock(s.fastestCatch) : "—"],
+    ["Closest near-miss", s.closestMiss !== null && s.closestMiss !== undefined ? s.closestMiss.toFixed(1) + "s" : "—"],
+    ["Sessions unlocked", unlockedList().length + " of 7"]
+  ];
+  var html = "";
+  for (var i = 0; i < rows.length; i++) {
+    html += '<div class="stat-row"><span>' + rows[i][0] + "</span><b>" + rows[i][1] + "</b></div>";
+  }
+  $("stats-body").innerHTML = html;
+}
+$("statsbtn").addEventListener("click", function () {
+  var card = $("stats-card");
+  var opening = card.style.display === "none";
+  if (opening) renderStats();
+  card.style.display = opening ? "block" : "none";
+  $("statsbtn").textContent = opening ? "📊 Hide stats" : "📊 Your stats";
+});
+
+/* ---------- v1.3: spoiler-free share strip (Wordle's grid, adapted) ----------
+   One block per segment heard this round. Segments let pass cleanly are
+   ⬛; the FINAL block is the call segment (or, on a miss, the repeat that
+   got away), graded: 🟩 caught · 🟨 near (call within ~2s of the true
+   loop point) · 🟥 far or missed. No names, no numbers, no answer.   */
+function dailyStrip(outcome, dist) {
+  var n = Math.max(1, state.segIndex), blocks = "";
+  for (var i = 0; i < n - 1; i++) blocks += "⬛";
+  var last = "🟥";
+  if (outcome === "caught") last = "🟩";
+  else if (outcome === "wolf" && dist !== null && dist !== undefined && Math.abs(dist) <= 2) last = "🟨";
+  return blocks + last;
+}
+
+/* ---------- v1.3: streak milestones ---------- */
+function milestoneText(streak) {
+  if (streak === 3) return "🔥 3-day streak — the hunt is becoming a habit.";
+  if (streak === 7) return "🔥 7-day streak — a full week of hunting.";
+  if (streak === 14) return "🔥 14-day streak — two solid weeks of sharp ears.";
+  if (streak === 30) return "🔥 30-day streak — a whole month of hunting. Legendary. 🌙";
+  return "";
+}
+
+/* ---------- v1.3: one hint per daily (Heardle's reveal, adapted) ----------
+   Pressing Hint (Daily Challenge only, once per Phoenix day) arms a
+   20-second window centred on the true loop point. When the stream
+   reaches the window, a subtle "the loop is close…" indicator glows.
+   Using it flags the official result — the share text owns it with
+   "· hint used", the way Wordle marks hard mode.                     */
+function dailyLoopOffset() {
+  if (!state.dailyPlan) return null;
+  var t = 0;
+  for (var s = 0; s < state.dailyPlan.stream.length; s++) {
+    if (state.dailyPlan.stream[s].isRepeat) break;
+    t += segDur(state.dailyPlan.stream[s].src);
+  }
+  return t;
+}
+function hintUsedToday() { return dailyStore().hintKey === phoenixKey(); }
+function renderHintBtn() {
+  var btn = $("hintbtn");
+  if (state.mode !== "daily") { btn.style.display = "none"; return; }
+  btn.style.display = "inline-block";
+  if (hintUsedToday()) { btn.disabled = true; btn.textContent = "💡 Hint used today"; }
+  else { btn.disabled = false; btn.textContent = "💡 Hint (one per day)"; }
+}
+$("hintbtn").addEventListener("click", function () {
+  if (state.mode !== "daily" || state.over || !state.current || hintUsedToday()) return;
+  var store = dailyStore();
+  store.hintKey = phoenixKey();
+  saveDailyStore(store);
+  var loop = dailyLoopOffset();
+  if (loop === null) return;
+  var start = Math.max(0, loop - 10);
+  state.hintWin = { start: start, end: start + 20 };
+  state.hintThisAttempt = true;
+  renderHintBtn();
+  feedback("💡 Hint armed — the loop lands within a 20-second window somewhere ahead. When the stream whispers that the loop is close… listen sharp.", true);
+  updateHintIndicator();
+});
+function updateHintIndicator() {
+  var ind = $("hint-indicator");
+  if (!ind) return;
+  if (!state.hintWin || state.over || !state.playing) { ind.style.display = "none"; return; }
+  var now = state.curSegStart + (audio.currentTime || 0);
+  ind.style.display = (now >= state.hintWin.start && now <= state.hintWin.end) ? "block" : "none";
+}
+
+/* ---------- v1.3: next-daily countdown ----------
+   Ticks every second toward the next Phoenix midnight; when the date
+   rolls over, the home card re-renders onto the new day's challenge. */
+var countdownKey = null;
+function tickCountdown() {
+  var t = "Next hunt in " + fmtCountdown(secsToPhoenixMidnight());
+  var a = $("daily-countdown"); if (a) a.textContent = t;
+  var b = $("daily-countdown-over"); if (b) b.textContent = t;
+  var key = phoenixKey();
+  if (countdownKey === null) countdownKey = key;
+  else if (key !== countdownKey) { countdownKey = key; renderDailyHome(); }
+}
+
 /* ---------- v1.2 init ---------- */
 renderDailyHome();
 renderShelf();
+/* ---------- v1.3 init ---------- */
+tickCountdown();
+setInterval(tickCountdown, 1000);
 
 /* ---------- generative ambience visual, seeded per segment ----------
    Same segment => same seed => same look. The repeat LOOKS the same too.
