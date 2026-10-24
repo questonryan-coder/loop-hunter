@@ -87,6 +87,46 @@
     padding:13px 30px; font-size:1.05rem; margin:8px 4px;
     box-shadow:0 0 22px rgba(95,227,200,.3);
   }
+  /* ---------- v1.2 additions ---------- */
+  #feedback{white-space:pre-line;}
+  .daily-start{
+    background:linear-gradient(180deg,#a5c8ff,#7aa8f0); color:#0a1c3f;
+    font-size:1.12rem; letter-spacing:.05em; padding:14px 30px; margin-top:8px;
+    box-shadow:0 0 24px rgba(122,168,240,.3);
+  }
+  .subbtn{
+    background:linear-gradient(180deg,#ffe1a0,var(--gold)); color:#231a04;
+    padding:12px 26px; font-size:1.02rem; margin:6px 4px;
+  }
+  #mode-line{min-height:1.2em; margin:6px 0 0; letter-spacing:.1em; color:var(--gold);}
+  .meter{
+    position:relative; height:34px; margin:26px 6px 8px;
+    background:rgba(154,166,214,.12); border-radius:8px;
+  }
+  .meter .zone{position:absolute; top:0; bottom:0; border-radius:8px; opacity:.5;}
+  .meter .mark{position:absolute; top:-7px; width:2px; height:48px; transform:translateX(-1px);}
+  .meter .mark span{
+    position:absolute; top:-19px; left:50%; transform:translateX(-50%);
+    font-size:.68rem; letter-spacing:.04em; white-space:nowrap; color:var(--dim);
+  }
+  .meter .mark.loop{background:var(--gold); box-shadow:0 0 10px rgba(244,201,107,.8);}
+  .meter .mark.guess{background:var(--teal); box-shadow:0 0 10px rgba(95,227,200,.8);}
+  .meter .mark b{
+    position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    font-size:.95rem; font-weight:normal;
+  }
+  .nm-text{font-size:1.12rem; margin:.4em 0 .2em;}
+  .heat-hot{color:var(--teal);} .heat-warm{color:var(--gold);} .heat-cold{color:var(--danger);}
+  #unlock-card{border-color:rgba(244,201,107,.55);}
+  .chip{
+    display:inline-block; border:1px solid rgba(244,201,107,.5); color:var(--gold);
+    border-radius:999px; padding:4px 12px; margin:3px 2px; font-size:.85rem;
+    text-decoration:none;
+  }
+  .sharetext{
+    background:rgba(7,11,26,.6); border:1px dashed rgba(154,166,214,.4); border-radius:10px;
+    padding:12px; font-size:.95rem; line-height:1.5; white-space:pre-line; margin:10px 0;
+  }
   footer{position:relative; z-index:1; color:var(--dim); font-size:.78rem; padding:0 16px 26px; text-align:center;}
 </style>
 </head>
@@ -107,10 +147,23 @@
     </div>
     <button class="big-start" id="startbtn">▶ Start Listening</button>
     <p class="small" id="bestline"></p>
+    <div class="card" id="daily-home">
+      <p style="font-size:1.15rem; margin-bottom:.2em;">☀️ <b>Daily Challenge</b></p>
+      <p id="daily-label" style="margin:.2em 0;">Today's hunt</p>
+      <p class="small">One hidden repeat, the same stream for every hunter today. Your first finished attempt is the one that counts.</p>
+      <button class="daily-start" id="dailybtn">Play today's hunt</button>
+      <p class="small" id="daily-status"></p>
+    </div>
+    <div class="card" id="shelf" style="display:none;">
+      <p style="margin-bottom:.2em;">🔓 <b>Your unlocked sessions</b></p>
+      <p class="small">Caught loops unlock the full hour-long session behind the sound. Tap one to listen at auraflowfocus.com:</p>
+      <p id="shelf-list"></p>
+    </div>
   </section>
 
   <!-- GAME -->
   <section id="game" class="screen">
+    <p class="small" id="mode-line"></p>
     <div id="hud">
       <div class="streak">STREAK<b id="h-streak">0</b></div>
       <div>SCORE<b id="h-score">0</b></div>
@@ -139,9 +192,29 @@
       <button class="ghost" id="againbtn">Hunt again</button>
       <p class="small" id="share-note"></p>
     </div>
+    <div class="card" id="nearmiss-card" style="display:none;">
+      <p style="margin-bottom:0;">📍 <b>How close were you?</b></p>
+      <div class="meter" id="nm-meter"></div>
+      <p class="nm-text" id="nm-text"></p>
+      <p class="small" id="nm-sub"></p>
+    </div>
+    <div class="card" id="unlock-card" style="display:none;">
+      <p style="font-size:1.15rem;">🔓 <b>Session unlocked!</b></p>
+      <p id="unlock-text"></p>
+      <a id="unlock-link" href="https://auraflowfocus.com" target="_blank" rel="noopener"><button class="subbtn">🎧 Hear the full session</button></a>
+      <p class="small">Free to start at auraflowfocus.com — Pro unlocks all 60+ soundscapes.</p>
+    </div>
+    <div class="card" id="daily-card" style="display:none;">
+      <p style="font-size:1.15rem;">☀️ <b>Daily Challenge — result</b></p>
+      <p class="small" id="daily-note"></p>
+      <div class="sharetext" id="daily-sharetext"></div>
+      <button class="share" id="dcopybtn">Copy result 📋</button>
+      <button class="share" id="dsharebtn" style="display:none;">Share 📤</button>
+      <p class="small" id="daily-share-note"></p>
+    </div>
   </section>
 </main>
-<footer>Loop Hunter v1 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain &amp; Gothic Cathedral.</footer>
+<footer>Loop Hunter v1.2 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour &amp; Pumpkin Hollow.</footer>
 
 <script>
 "use strict";
@@ -157,6 +230,77 @@
 var POOL = [];
 for (var i = 1; i <= 40; i++) POOL.push("segments/seg" + (i < 10 ? "0" + i : i) + ".mp3");
 var GAME_URL = "https://questonryan-coder.github.io/loop-hunter/";
+var SITE_URL = "https://auraflowfocus.com";
+
+/* ---------- v1.2 data ----------
+   SEG_DUR: exact segment durations in seconds (ffprobe-measured). Used for
+   the near-miss timeline math and the deterministic Daily stream.
+   SEG_SOURCE: which full AuraFlow session each segment was cut from.
+   Provenance: build order in the project records — v1 pool cut in order
+   from Midnight Forest / Haunted Rain / Gothic Cathedral (8 each,
+   seg01–24); v1.1 added +4 each from Fog Over the Moors / The Cellar /
+   Witching Hour / Pumpkin Hollow (seg25–40), per the v1.1 build log.
+   Unlock links always go to the auraflowfocus.com home — no per-session
+   deep links are published, so none are invented here. */
+var SEG_DUR = [0,
+  10, 9,11, 8,12, 9,10,11, 11, 8,10,12, 9,11, 8,10, 9,12, 8,10,11, 8,12, 9,
+   9,11,10,12, 9,11,10,12, 9,11,10,12, 9,11,10,12];
+function segNum(src) { var m = /seg(\d+)\.mp3/.exec(src); return m ? parseInt(m[1], 10) : 0; }
+function segDur(src) { return SEG_DUR[segNum(src)] || 10; }
+function segSource(src) {
+  var n = segNum(src);
+  if (n >= 1 && n <= 8) return "Midnight Forest";
+  if (n >= 9 && n <= 16) return "Haunted Rain";
+  if (n >= 17 && n <= 24) return "Gothic Cathedral";
+  if (n >= 25 && n <= 28) return "Fog Over the Moors";
+  if (n >= 29 && n <= 32) return "The Cellar";
+  if (n >= 33 && n <= 36) return "Witching Hour";
+  if (n >= 37 && n <= 40) return "Pumpkin Hollow";
+  return null;
+}
+
+/* ---------- Phoenix date helpers (America/Phoenix — no DST) ---------- */
+function phoenixParts(d) {
+  var parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Phoenix", year: "numeric", month: "2-digit", day: "2-digit"
+  }).formatToParts(d || new Date());
+  var o = {};
+  for (var i = 0; i < parts.length; i++) o[parts[i].type] = parts[i].value;
+  return { y: parseInt(o.year, 10), m: parseInt(o.month, 10), d: parseInt(o.day, 10) };
+}
+function phoenixKey(d) { var p = phoenixParts(d); return p.y * 10000 + p.m * 100 + p.d; }
+function phoenixLabel(d) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Phoenix", month: "short", day: "numeric", year: "numeric"
+  }).format(d || new Date());
+}
+function keyToDate(key) {
+  return new Date(Math.floor(key / 10000), Math.floor(key / 100) % 100 - 1, key % 100);
+}
+function shiftKey(key, days) {
+  var dt = keyToDate(key); dt.setDate(dt.getDate() + days);
+  return dt.getFullYear() * 10000 + (dt.getMonth() + 1) * 100 + dt.getDate();
+}
+
+/* ---------- seeded RNG (mulberry32) ---------- */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function shuffleSeeded(a, rnd) {
+  for (var j = a.length - 1; j > 0; j--) {
+    var k = Math.floor(rnd() * (j + 1)), t = a[j]; a[j] = a[k]; a[k] = t;
+  }
+  return a;
+}
+function fmtClock(sec) {
+  sec = Math.max(0, Math.round(sec));
+  return Math.floor(sec / 60) + ":" + ("0" + (sec % 60)).slice(-2);
+}
 
 var audio = new Audio();
 audio.preload = "auto";
@@ -170,7 +314,16 @@ var state = {
   current: null,      // {src, isRepeat}
   segIndex: 0,        // segments played this round (display)
   playing: false,
-  over: false
+  over: false,
+  /* v1.2 */
+  mode: "free",       // "free" | "daily"
+  script: null,       // daily mode: scripted [{src, isRepeat}] stream
+  roundElapsed: 0,    // seconds of completed segments this round
+  curSegStart: 0,     // round-offset (s) where the current segment began
+  curDur: 0,          // duration (s) of the current segment
+  loopOffset: null,   // round-offset (s) where the repeat segment began
+  lastUnlock: null,   // session name unlocked most recently this run
+  dailyPlan: null     // today's daily plan {victim, stream, key}
 };
 
 var $ = function (id) { return document.getElementById(id); };
@@ -198,6 +351,184 @@ function renderBestLine() {
 }
 renderBestLine();
 
+/* ---------- v1.2: near-miss meter ----------
+   All times are seconds on the current round's stream timeline.
+   The TRUE LOOP POINT is the moment the repeat segment starts.
+   kind: "caught" (guess inside the repeat), "early" (guess before the
+   loop point), "missed" (no guess — the repeat played through).      */
+function nearMissInfo(kind, guess, loop, extra) {
+  extra = extra || {};
+  var dist, text, cls;
+  if (kind === "caught") {
+    dist = guess - loop;
+    if (dist <= 1.5) { text = "Caught it " + dist.toFixed(1) + "s after the loop point — blazing fast. 🔥"; cls = "heat-hot"; }
+    else if (dist <= 4) { text = "Caught it " + dist.toFixed(1) + "s after the loop point — sharp ears. 🎯"; cls = "heat-hot"; }
+    else if (dist <= 8) { text = "Caught it " + dist.toFixed(1) + "s after the loop point — solid catch."; cls = "heat-warm"; }
+    else { text = "Caught it " + dist.toFixed(1) + "s after the loop point — just in time."; cls = "heat-warm"; }
+    return { kind: kind, guess: guess, loop: loop, dist: dist, text: text, cls: cls,
+             sub: "The loop point is the exact moment the repeated segment began. Closer to it = faster ears." };
+  }
+  if (kind === "early") {
+    dist = guess - loop; // negative
+    var a = Math.abs(dist);
+    if (a <= 2) { text = a.toFixed(1) + "s early — so close it hurts. 😱"; cls = "heat-hot"; }
+    else if (a <= 6) { text = a.toFixed(1) + "s early — the loop was right there ahead of you."; cls = "heat-warm"; }
+    else if (a <= 15) { text = a.toFixed(1) + "s early — you jumped ahead of the stream."; cls = "heat-warm"; }
+    else { text = a.toFixed(1) + "s early — the loop hadn't even begun."; cls = "heat-cold"; }
+    return { kind: kind, guess: guess, loop: loop, dist: dist, text: text, cls: cls,
+             sub: extra.atLeast
+               ? "And that's the minimum — the stream hadn't even placed its repeat yet when you called it."
+               : "Your call landed before the repeated segment ever started." };
+  }
+  /* missed */
+  dist = extra.dur || 0;
+  return { kind: kind, guess: null, loop: loop, dist: dist,
+           text: "It slipped past — the loop point was the very start of that segment, and it played " + dist.toFixed(1) + "s uncaught. 🌫️",
+           cls: "heat-cold",
+           sub: "The whole repeated segment was the tell. Next time, trust the déjà vu." };
+}
+function renderNearMiss(nm) {
+  var card = $("nearmiss-card");
+  if (!nm) { card.style.display = "none"; return; }
+  card.style.display = "block";
+  $("nm-text").textContent = nm.text;
+  $("nm-text").className = "nm-text " + nm.cls;
+  $("nm-sub").textContent = nm.sub;
+  var meter = $("nm-meter");
+  meter.innerHTML = "";
+  var lo, hi;
+  if (nm.kind === "missed") { lo = nm.loop - 2; hi = nm.loop + nm.dist + 2; }
+  else {
+    var span = Math.max(4, Math.abs(nm.dist));
+    lo = Math.min(nm.guess, nm.loop) - span * 0.25;
+    hi = Math.max(nm.guess, nm.loop) + span * 0.25;
+  }
+  function pct(t) { return Math.max(0, Math.min(100, 100 * (t - lo) / (hi - lo))); }
+  if (nm.kind === "missed") {
+    var zone = document.createElement("div");
+    zone.className = "zone";
+    zone.style.left = pct(nm.loop) + "%";
+    zone.style.width = (pct(nm.loop + nm.dist) - pct(nm.loop)) + "%";
+    zone.style.background = "rgba(255,107,129,.45)";
+    meter.appendChild(zone);
+  }
+  var lm = document.createElement("div");
+  lm.className = "mark loop";
+  lm.style.left = pct(nm.loop) + "%";
+  lm.innerHTML = "<span>🎯 true loop point</span><b>◆</b>";
+  meter.appendChild(lm);
+  if (nm.guess !== null && nm.guess !== undefined) {
+    var gm = document.createElement("div");
+    gm.className = "mark guess";
+    gm.style.left = pct(nm.guess) + "%";
+    gm.innerHTML = "<span>👆 your call</span><b>●</b>";
+    meter.appendChild(gm);
+  }
+}
+
+/* ---------- v1.2: win-to-unlock ---------- */
+function unlockedList() {
+  try { return JSON.parse(localStorage.getItem("lh_unlocked_v1") || "[]"); }
+  catch (e) { return []; }
+}
+function recordUnlock(name) {
+  if (!name) return false;
+  var list = unlockedList();
+  if (list.indexOf(name) >= 0) return false;
+  list.push(name);
+  localStorage.setItem("lh_unlocked_v1", JSON.stringify(list));
+  return true;
+}
+function renderShelf() {
+  var list = unlockedList(), shelf = $("shelf");
+  if (!list.length) { shelf.style.display = "none"; return; }
+  shelf.style.display = "block";
+  var html = "";
+  for (var i = 0; i < list.length; i++) {
+    html += '<a class="chip" href="' + SITE_URL + '" target="_blank" rel="noopener">🔓 ' + list[i] + "</a>";
+  }
+  $("shelf-list").innerHTML = html;
+}
+function renderUnlockCard() {
+  var card = $("unlock-card");
+  if (!state.lastUnlock) { card.style.display = "none"; return; }
+  card.style.display = "block";
+  $("unlock-text").innerHTML =
+    "That loop you caught was cut from <b>" + state.lastUnlock + "</b> — a full hour-long AuraFlow session. It's on your shelf now.";
+  $("unlock-link").href = SITE_URL;
+}
+
+/* ---------- v1.2: Daily Challenge ----------
+   One deterministic stream per Phoenix date: same victim segment, same
+   order, same repeat placement for every player. Seeded by YYYYMMDD. */
+function dailyPlan(key) {
+  var rnd = mulberry32(key);
+  var victim = 1 + Math.floor(rnd() * 40);
+  var order = [];
+  for (var i = 1; i <= 40; i++) order.push(i);
+  shuffleSeeded(order, rnd);
+  var repeatAfter = 6 + Math.floor(rnd() * 3); // repeat is segment #(repeatAfter+1), like free-play round 1
+  var vi = order.indexOf(victim);
+  if (vi >= repeatAfter) { // victim must appear before its repeat
+    var pos = Math.floor(rnd() * repeatAfter), t = order[pos];
+    order[pos] = victim; order[vi] = t;
+  }
+  var stream = [];
+  for (var j = 0; j < repeatAfter; j++) {
+    stream.push({ src: POOL[order[j] - 1], isRepeat: false });
+  }
+  stream.push({ src: POOL[victim - 1], isRepeat: true });
+  return { key: key, victim: victim, victimSrc: POOL[victim - 1], stream: stream };
+}
+function dailyStore() {
+  try { return JSON.parse(localStorage.getItem("lh_daily_v1") || "{}"); }
+  catch (e) { return {}; }
+}
+function saveDailyStore(s) { localStorage.setItem("lh_daily_v1", JSON.stringify(s)); }
+function huntsThisWeek(store, key) {
+  var plays = store.plays || {}, n = 0;
+  for (var back = 0; back < 7; back++) if (plays[shiftKey(key, -back)]) n++;
+  return n;
+}
+/* Record the FIRST completed daily attempt of the day; replays don't overwrite. */
+function recordDaily(result) {
+  var store = dailyStore(), key = phoenixKey();
+  store.plays = store.plays || {};
+  if (store.plays[key]) return store.plays[key];
+  if (store.lastKey === shiftKey(key, -1)) store.streak = (store.streak || 0) + 1;
+  else if (store.lastKey !== key) store.streak = 1;
+  store.lastKey = key;
+  store.plays[key] = result;
+  saveDailyStore(store);
+  return result;
+}
+function dailyShareText(result, store, key) {
+  var line;
+  if (result.outcome === "caught") line = "Caught it in " + fmtClock(result.atTime);
+  else if (result.outcome === "missed") line = "The loop slipped past me at " + fmtClock(result.atTime);
+  else line = "I cried wolf at " + fmtClock(result.atTime);
+  var text = "🎧 Loop Hunter Daily — " + phoenixLabel() + " · " + line +
+             " · " + huntsThisWeek(store, key) + " hunt" + (huntsThisWeek(store, key) === 1 ? "" : "s") + " this week";
+  if ((store.streak || 0) > 1) text += "\n🔥 " + store.streak + "-day streak";
+  return text + "\n" + GAME_URL;
+}
+function renderDailyHome() {
+  var key = phoenixKey(), store = dailyStore();
+  state.dailyPlan = dailyPlan(key);
+  $("daily-label").textContent = "Today's hunt — " + phoenixLabel();
+  var played = (store.plays || {})[key], status = "";
+  if (played) {
+    status = played.outcome === "caught"
+      ? "✓ Played today — you caught it in " + fmtClock(played.atTime) + ". Replays are practice."
+      : "✓ Played today — the loop got away. Replays are practice.";
+    $("dailybtn").textContent = "↻ Replay today's hunt";
+  } else {
+    $("dailybtn").textContent = "▶ Play today's hunt";
+  }
+  if (store.streak) status += (status ? " " : "") + "🔥 " + store.streak + "-day streak";
+  $("daily-status").textContent = status;
+}
+
 function shuffle(a) {
   for (var j = a.length - 1; j > 0; j--) {
     var k = Math.floor(Math.random() * (j + 1)), t = a[j]; a[j] = a[k]; a[k] = t;
@@ -214,6 +545,8 @@ function startRound() {
   state.playedThisRound = [];
   state.segIndex = 0;
   state.over = false;
+  state.roundElapsed = 0;
+  state.loopOffset = null;
   /* choose the repeat victim & timing up front:
      after minU uniques, the repeat lands within the next 1–3 segments. */
   var m = minUniques(state.round);
@@ -226,7 +559,12 @@ function startRound() {
 function nextSegment() {
   if (state.over) return;
   var isRepeat = false, src;
-  if (state.repeatIn === 0 && state.repeatSrc) {
+  if (state.script) {
+    /* Daily mode: consume the deterministic scripted stream. */
+    if (!state.script.length) return;
+    var item = state.script.shift();
+    src = item.src; isRepeat = item.isRepeat;
+  } else if (state.repeatIn === 0 && state.repeatSrc) {
     src = state.repeatSrc; isRepeat = true;
   } else {
     src = state.queue.shift();
@@ -245,6 +583,9 @@ function nextSegment() {
   }
   state.current = { src: src, isRepeat: isRepeat };
   if (!isRepeat) state.playedThisRound.push(src);
+  state.curSegStart = state.roundElapsed;
+  state.curDur = segDur(src);
+  if (isRepeat) state.loopOffset = state.curSegStart;
   state.segIndex++;
   $("nowplaying").textContent = "Segment #" + state.segIndex;
   $("progress").style.width = "0%";
@@ -260,9 +601,13 @@ audio.addEventListener("timeupdate", function () {
 
 audio.addEventListener("ended", function () {
   if (state.over || !state.current) return;
+  state.roundElapsed += state.curDur;
   if (state.current.isRepeat) {
     /* the loop played through uncaught */
-    gameOver(false, "The loop slipped past you — that last segment was the repeat, and it played out uncaught. 🌫️");
+    var nm = nearMissInfo("missed", null, state.loopOffset, { dur: state.curDur });
+    var atTime = state.loopOffset + state.curDur;
+    if (state.mode === "daily") finishDaily("missed", atTime, nm);
+    gameOver(false, "The loop slipped past you — that last segment was the repeat, and it played out uncaught. 🌫️", nm);
     return;
   }
   state.score++; updateHUD();
@@ -272,21 +617,52 @@ audio.addEventListener("ended", function () {
 
 $("loopbtn").addEventListener("click", function () {
   if (state.over || !state.current || !state.playing) return;
+  var guess = state.curSegStart + (audio.currentTime || 0);
   if (state.current.isRepeat) {
     state.score++;               // the caught repeat counts as survived
     state.streak++;
     saveBest(); updateHUD();
-    feedback("🎯 Caught it! That WAS the repeat.", true);
+    var nm = nearMissInfo("caught", guess, state.loopOffset, {});
+    var name = segSource(state.current.src);
+    var isNew = recordUnlock(name);
+    if (name) state.lastUnlock = name;
+    renderShelf();
     state.playing = false;
     audio.pause();
+    if (state.mode === "daily") {
+      finishDaily("caught", guess, nm);
+      gameOver(true, "🎯 Caught it! That WAS today's repeat.", nm);
+      return;
+    }
+    feedback("🎯 Caught it! That WAS the repeat.\n" + nm.text +
+             (name ? "\n🔓 Unlocked: " + name + (isNew ? " — added to your shelf on the home screen." : " (already on your shelf)") : ""), true);
     var btn = $("loopbtn"); btn.disabled = true;
     setTimeout(function () {
       btn.disabled = false;
       feedback("", true);
       startRound();
-    }, 1400);
+    }, 2600);
   } else {
-    gameOver(false, "False alarm — that segment was brand new, never played before. The stream stays undefeated… this time. 🌙");
+    /* false alarm: work out where the true loop point sits on the timeline */
+    var loopAt = null, atLeast = false;
+    if (state.mode === "daily" && state.dailyPlan) {
+      loopAt = 0;
+      for (var s = 0; s < state.dailyPlan.stream.length; s++) {
+        if (state.dailyPlan.stream[s].isRepeat) break;
+        loopAt += segDur(state.dailyPlan.stream[s].src);
+      }
+    } else if (state.repeatSrc) {
+      loopAt = guess + (state.curDur - (audio.currentTime || 0));
+      for (var q = 0; q < state.repeatIn && q < state.queue.length; q++) loopAt += segDur(state.queue[q]);
+    } else {
+      /* repeat not placed yet: exact minimum — it cannot begin sooner */
+      atLeast = true;
+      loopAt = guess + (state.curDur - (audio.currentTime || 0));
+      for (var q2 = 0; q2 < state.repeatIn - 1 && q2 < state.queue.length; q2++) loopAt += segDur(state.queue[q2]);
+    }
+    var nm2 = nearMissInfo("early", guess, loopAt, { atLeast: atLeast });
+    if (state.mode === "daily") finishDaily("wolf", guess, nm2);
+    gameOver(false, "False alarm — that segment was brand new, never played before. The stream stays undefeated… this time. 🌙", nm2);
   }
 });
 
@@ -302,26 +678,91 @@ function updateHUD() {
   $("h-round").textContent = Math.max(1, state.round);
 }
 
-function gameOver(_, reason) {
+function gameOver(_, reason, nm) {
   state.over = true; state.playing = false;
   audio.pause();
   saveBest();
   var b = best();
   $("over-reason").textContent = reason;
-  $("final-score").textContent = state.score;
-  $("final-detail").textContent =
-    "Loops caught: " + state.streak + " · Rounds survived: " + state.round +
-    " · Your best streak: " + b.streak + " · Best score: " + b.score;
+  if (state.mode === "daily") {
+    var store = dailyStore(), key = phoenixKey(), rec = (store.plays || {})[key];
+    $("final-score").textContent = rec ? fmtClock(rec.atTime) : "—";
+    $("final-detail").textContent = rec
+      ? (rec.outcome === "caught" ? "Today's hunt: caught in " : rec.outcome === "missed" ? "Today's hunt: it slipped past at " : "Today's hunt: false alarm at ") +
+        fmtClock(rec.atTime) + " · 🔥 " + (store.streak || 1) + "-day streak · " +
+        huntsThisWeek(store, key) + " hunt(s) this week"
+      : "";
+    $("daily-card").style.display = "block";
+    $("daily-note").textContent = "Your first finished attempt of the day is the official one — replays are practice.";
+    $("daily-sharetext").textContent = rec ? dailyShareText(rec, store, key) : "";
+    $("dsharebtn").style.display = navigator.share ? "inline-block" : "none";
+    $("daily-share-note").textContent = "";
+  } else {
+    $("final-score").textContent = state.score;
+    $("final-detail").textContent =
+      "Loops caught: " + state.streak + " · Rounds survived: " + state.round +
+      " · Your best streak: " + b.streak + " · Best score: " + b.score;
+    $("daily-card").style.display = "none";
+  }
+  renderNearMiss(nm || null);
+  renderUnlockCard();
+  renderShelf();
   show("over");
 }
 
+/* Record today's official daily result (first completion only). */
+function finishDaily(outcome, atTime, nm) {
+  recordDaily({ outcome: outcome, atTime: Math.round(atTime * 10) / 10, dist: nm ? Math.round(nm.dist * 10) / 10 : null });
+}
+
+function startDaily() {
+  var key = phoenixKey();
+  state.mode = "daily";
+  state.dailyPlan = dailyPlan(key);
+  state.script = state.dailyPlan.stream.slice();
+  state.streak = 0; state.score = 0; state.round = 0;
+  state.lastUnlock = null;
+  $("mode-line").textContent = "☀️ DAILY CHALLENGE — " + phoenixLabel().toUpperCase();
+  updateHUD();
+  show("game");
+  /* mirror startRound()'s resets for the scripted stream */
+  state.round = 1;
+  state.queue = []; state.playedThisRound = [];
+  state.repeatSrc = null; state.repeatIn = -1;
+  state.segIndex = 0; state.over = false;
+  state.roundElapsed = 0; state.loopOffset = null;
+  updateHUD();
+  nextSegment();
+}
+
+$("dailybtn").addEventListener("click", startDaily);
+$("dcopybtn").addEventListener("click", function () {
+  var text = $("daily-sharetext").textContent;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function () {
+      $("daily-share-note").textContent = "Copied — paste it anywhere. 📋";
+    });
+  } else {
+    $("daily-share-note").textContent = text;
+  }
+});
+$("dsharebtn").addEventListener("click", function () {
+  if (navigator.share) {
+    navigator.share({ title: "Loop Hunter 🌙 — Daily Challenge", text: $("daily-sharetext").textContent }).catch(function () {});
+  }
+});
+
 $("startbtn").addEventListener("click", function () {
+  state.mode = "free"; state.script = null; state.lastUnlock = null;
+  $("mode-line").textContent = "";
   state.streak = 0; state.score = 0; state.round = 0;
   updateHUD();
   show("game");
   startRound();
 });
 $("againbtn").addEventListener("click", function () {
+  if (state.mode === "daily") { startDaily(); return; }
+  state.lastUnlock = null;
   state.streak = 0; state.score = 0; state.round = 0;
   $("share-note").textContent = "";
   updateHUD();
@@ -342,6 +783,10 @@ $("sharebtn").addEventListener("click", function () {
     $("share-note").textContent = text;
   }
 });
+
+/* ---------- v1.2 init ---------- */
+renderDailyHome();
+renderShelf();
 
 /* ---------- generative ambience visual, seeded per segment ----------
    Same segment => same seed => same look. The repeat LOOKS the same too.
