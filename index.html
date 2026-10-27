@@ -143,15 +143,21 @@
   .stat-row b{color:var(--gold); font-weight:normal; white-space:nowrap;}
   .pb-line{color:var(--gold); font-size:1.12rem; margin:.4em 0;}
   .milestone-line{color:var(--gold); font-size:1.08rem; margin:.4em 0;}
+  /* ---------- v1.4 additions ---------- */
+  /* 13 Nights realm skin: warm pumpkin palette while the season runs. */
+  body.haunted{--gold:#ff9a3c;}
+  body.haunted .moon{filter:drop-shadow(0 0 18px rgba(255,154,60,.6));}
+  #seasonal-line{color:var(--gold); font-size:1rem; letter-spacing:.04em; margin:2px 0 8px;}
   footer{position:relative; z-index:1; color:var(--dim); font-size:.78rem; padding:0 16px 26px; text-align:center;}
 </style>
 </head>
 <body>
 <canvas id="glow"></canvas>
 <main>
-  <div class="moon">🌙</div>
+  <div class="moon" id="moon-emoji">🌙</div>
   <h1>LOOP <b>HUNTER</b></h1>
   <p class="tag">the AuraFlow game that dares you to find a repeat</p>
+  <p class="small" id="seasonal-line" style="display:none;"></p>
 
   <!-- START -->
   <section id="start" class="screen on">
@@ -229,6 +235,7 @@
       <p style="font-size:1.15rem;">🔓 <b>Session unlocked!</b></p>
       <p id="unlock-text"></p>
       <a id="unlock-link" href="https://auraflowfocus.com" target="_blank" rel="noopener"><button class="subbtn">🎧 Hear the full session</button></a>
+      <p class="small" id="haunted-sessions-line">Own the full sessions 🎃 The Haunted Sessions — all 7 hours, one download: <a href="https://qstnryan.gumroad.com/l/tmhxjo" target="_blank" rel="noopener">https://qstnryan.gumroad.com/l/tmhxjo</a></p>
       <p class="small">Free to start at auraflowfocus.com — Pro unlocks all 60+ soundscapes.</p>
     </div>
     <div class="card" id="daily-card" style="display:none;">
@@ -243,7 +250,7 @@
     </div>
   </section>
 </main>
-<footer>Loop Hunter v1.3 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour &amp; Pumpkin Hollow.</footer>
+<footer>Loop Hunter v1.4 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour &amp; Pumpkin Hollow.</footer>
 
 <script>
 "use strict";
@@ -651,6 +658,7 @@ function nextSegment() {
   audio.src = src;
   state.playing = true;
   audio.play().catch(function () { /* gesture already given; ignore */ });
+  preloadNext();
   updateHintIndicator();
 }
 
@@ -1016,9 +1024,48 @@ function tickCountdown() {
   else if (key !== countdownKey) { countdownKey = key; renderDailyHome(); }
 }
 
+/* ---------- v1.4: preload the next segments + seasonal realm skin ----------
+   preloadNext: while the current segment plays, warm the browser cache
+   with the next two upcoming segments (scripted daily stream, or the
+   free-play queue). Small files (~160KB each), no game-logic change —
+   the next segment simply starts without a fetch gap.
+   seasonalSkin: during the 13 Nights window (Phoenix Oct 19–31) the
+   game wears its Halloween skin — pumpkin moon, warm gold palette,
+   and a season banner under the tagline. Outside the window nothing
+   changes, so the skin retires itself on Nov 1 with no code push.  */
+var preloadCache = [];
+function preloadNext() {
+  var upcoming = [];
+  if (state.script) {
+    for (var i = 0; i < Math.min(2, state.script.length); i++) upcoming.push(state.script[i].src);
+  } else {
+    for (var j = 0; j < Math.min(2, state.queue.length); j++) upcoming.push(state.queue[j]);
+  }
+  preloadCache = [];
+  for (var k = 0; k < upcoming.length; k++) {
+    var a = new Audio();
+    a.preload = "auto";
+    a.src = upcoming[k];
+    preloadCache.push(a);
+  }
+}
+function seasonalSkin() {
+  var p = phoenixParts();
+  if (!(p.m === 10 && p.d >= 19 && p.d <= 31)) return;
+  document.body.classList.add("haunted");
+  var moon = $("moon-emoji");
+  if (moon) moon.textContent = "🎃";
+  var line = $("seasonal-line");
+  if (line) {
+    line.textContent = "🎃 13 Nights of Haunting — the hunt wears its Halloween skin until Oct 31.";
+    line.style.display = "block";
+  }
+}
+
 /* ---------- v1.2 init ---------- */
 renderDailyHome();
 renderShelf();
+seasonalSkin();
 /* ---------- v1.3 init ---------- */
 tickCountdown();
 setInterval(tickCountdown, 1000);

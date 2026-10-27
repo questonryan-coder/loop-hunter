@@ -1,5 +1,13 @@
 # Loop Hunter — Changelog
 
+## v1.4 — 2026-10-27 (weekly autopilot run) — load speed + 13 Nights skin + first-100 unlock line
+
+1. **Improve — load speed:** while a segment plays, the next two upcoming segments are preloaded (`preloadNext`, scripted daily stream or free-play queue), so the next segment starts without a fetch gap. No game-logic change; pool, durations, and daily determinism untouched.
+2. **Add — 13 Nights seasonal realm skin:** during the Phoenix Oct 19–31 window the game wears its Halloween skin — pumpkin moon, warm gold palette, and a "13 Nights of Haunting" banner under the tagline. The window is date-checked, so the skin retires itself on Nov 1 with no further push.
+3. **Pending one-shot (FIRST-100 push plan §3.7 / step M5, spent in this run):** the win-to-unlock card gains one secondary line directly under the existing auraflowfocus.com unlock link (site link stays first and primary): "Own the full sessions 🎃 The Haunted Sessions — all 7 hours, one download: https://qstnryan.gumroad.com/l/tmhxjo".
+
+Verified: Node DOM/Audio-stub harness — 10/10 checks (syntax, seasonal skin active on Phoenix Oct 27, pumpkin moon + banner, unlock line present directly after the unlock link with the site link first, footer v1.4, preload cache holds the next 2 mp3s after a round start); live recheck after push (see loop-hunter-log.jsonl).
+
 ## v1.3 — 2026-10-23 (gate ALLOW seq 382) — the EPIC pass
 
 The proven Wordle/Heardle mechanics, adapted honestly to a listening
