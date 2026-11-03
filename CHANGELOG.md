@@ -1,5 +1,35 @@
 # Loop Hunter — Changelog
 
+## v1.5 — 2026-11-03 (weekly autopilot run) — salience-tuned fairness + 8 new segments
+
+1. **Improve — fairness/difficulty tuning (research brief-02 spec):** every
+   segment now carries a landmark-salience tag (`SEG_SALIENCE`: 22 high of
+   48), measured by a transient-contrast heuristic ((P95−median)/mean of
+   50ms RMS frames) with envelope spot-checks — method in
+   `files/research/brief-02-loop-hunter-perception.md`, provenance in
+   `hidden_files/loop-hunter-salience/provenance.txt`. Repeat-victim
+   selection is round-aware (`pickVictim`): rounds 1–2 draw victims only
+   from high-salience segments among the uniques played (fair while the
+   player learns), round 3 may draw any, rounds 4+ prefer a victim whose
+   same-session sibling also played that round (the similarity lever —
+   change-deafness rises with scene similarity). No victim repeats within
+   a play session (`usedVictims`, reset per run) — durable auditory
+   memory makes a once-caught segment permanently solved. Timing rules
+   untouched (8–12s segments, min-uniques slope, one false tap ends the
+   run) per the science bars. The Daily Challenge victim is likewise
+   high-salience-only, still Phoenix-date-seeded.
+2. **Add — pool 40 → 48:** seg41–48 cut from three NEW masters shipped
+   Oct 29 (Candlelit Seance ×3, Lantern Keeper ×2, Graveyard Shift
+   Ambience ×3) — 10.0s, 128kbps, 0.4s fades, non-overlapping windows,
+   no source-seconds reused (these masters were never cut before).
+   `SEG_SOURCE`/`SEG_DUR` extended; unlock shelf, stats view, and footer
+   now count 10 sessions; "hour-long" copy fixed to "session" (Lantern
+   Keeper runs 17m50s). The 13 Nights skin retired itself Nov 1
+   (date-checked, no push needed).
+
+Verified: Node DOM/Audio-stub harness (see run checks below); live
+recheck after push (see loop-hunter-log.jsonl).
+
 ## v1.4 — 2026-10-27 (weekly autopilot run) — load speed + 13 Nights skin + first-100 unlock line
 
 1. **Improve — load speed:** while a segment plays, the next two upcoming segments are preloaded (`preloadNext`, scripted daily stream or free-play queue), so the next segment starts without a fetch gap. No game-logic change; pool, durations, and daily determinism untouched.

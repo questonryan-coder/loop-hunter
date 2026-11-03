@@ -186,7 +186,7 @@
     </div>
     <div class="card" id="shelf" style="display:none;">
       <p style="margin-bottom:.2em;">🔓 <b>Your unlocked sessions</b></p>
-      <p class="small">Caught loops unlock the full hour-long session behind the sound. Tap one to listen at auraflowfocus.com:</p>
+      <p class="small">Caught loops unlock the full session behind the sound. Tap one to listen at auraflowfocus.com:</p>
       <p id="shelf-list"></p>
     </div>
   </section>
@@ -214,7 +214,7 @@
       <div class="final-score" id="final-score">0</div>
       <p class="small" id="final-detail"></p>
       <p class="pb-line" id="pb-line" style="display:none;"></p>
-      <p>This was <b>100% real AuraFlow audio</b> — cut from the full hour-long sessions. The complete sessions live at <b>auraflowfocus.com</b>: Pro unlocks all 60+ soundscapes for sleep, focus &amp; calm — $9/mo.</p>
+      <p>This was <b>100% real AuraFlow audio</b> — cut from full AuraFlow sessions. The complete sessions live at <b>auraflowfocus.com</b>: Pro unlocks all 60+ soundscapes for sleep, focus &amp; calm — $9/mo.</p>
       <p class="links">
         🎧 <a href="https://auraflowfocus.com" target="_blank" rel="noopener">auraflowfocus.com</a><br>
         ▶️ <a href="https://www.youtube.com/@AuraFlowSleep" target="_blank" rel="noopener">YouTube — @AuraFlowSleep</a><br>
@@ -250,21 +250,29 @@
     </div>
   </section>
 </main>
-<footer>Loop Hunter v1.4 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour &amp; Pumpkin Hollow.</footer>
+<footer>Loop Hunter v1.5 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper &amp; Graveyard Shift.</footer>
 
 <script>
 "use strict";
-/* ---------- Loop Hunter v1 ----------
-   Pool: 40 neutral segments cut from real AuraFlow masters
-   (Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors,
-   The Cellar, Witching Hour, Pumpkin Hollow).
+/* ---------- Loop Hunter v1.5 ----------
+   Pool: 48 segments cut from real AuraFlow masters (Midnight Forest,
+   Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar,
+   Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper,
+   Graveyard Shift). Each segment carries a landmark-salience tag
+   (SEG_SALIENCE: 1 = distinctive transient events, 0 = pure wash),
+   measured by transient-contrast (P95-median)/mean of 50ms RMS frames
+   with envelope spot-checks (method: files/research/brief-02). The
+   repeat victim is drawn round-aware (see pickVictim): rounds 1-2
+   high-salience only (fair while the player learns), round 3 any,
+   rounds 4+ prefer a victim whose same-session sibling also played
+   (similarity lever); no victim repeats within a session.
    Round flow: shuffled unique draws; exactly ONE repeat of an
    already-played segment is inserted after a minimum number of
    uniques (fewer required as rounds advance). Catch it by tapping
    while it plays. False tap or letting it finish = game over.   */
 
 var POOL = [];
-for (var i = 1; i <= 40; i++) POOL.push("segments/seg" + (i < 10 ? "0" + i : i) + ".mp3");
+for (var i = 1; i <= 48; i++) POOL.push("segments/seg" + (i < 10 ? "0" + i : i) + ".mp3");
 var GAME_URL = "https://questonryan-coder.github.io/loop-hunter/";
 var SITE_URL = "https://auraflowfocus.com";
 
@@ -280,9 +288,24 @@ var SITE_URL = "https://auraflowfocus.com";
    deep links are published, so none are invented here. */
 var SEG_DUR = [0,
   10, 9,11, 8,12, 9,10,11, 11, 8,10,12, 9,11, 8,10, 9,12, 8,10,11, 8,12, 9,
-   9,11,10,12, 9,11,10,12, 9,11,10,12, 9,11,10,12];
+   9,11,10,12, 9,11,10,12, 9,11,10,12, 9,11,10,12,
+  10,10,10,10,10,10,10,10]; // seg41-48 ffprobe-measured, all 10.00s
 function segNum(src) { var m = /seg(\d+)\.mp3/.exec(src); return m ? parseInt(m[1], 10) : 0; }
 function segDur(src) { return SEG_DUR[segNum(src)] || 10; }
+/* ---------- v1.5: landmark salience tags (brief-02) ----------
+   1 = high salience (distinctive transient events — hoot/bell/thunder
+   landmarks the player can anchor on); 0 = low (pure wash). Measured by
+   transient-contrast heuristic + envelope spot-checks, Nov 3 2026; see
+   hidden_files/loop-hunter-salience/provenance.txt. Rounds 1-2 draw
+   victims only from high-salience segments (fair); rounds 4+ prefer
+   same-session-sibling victims (hard). */
+var SEG_SALIENCE = [
+  0, 0, 0, 1, 0, 0, 0, 0, 0, 1,
+  0, 1, 1, 1, 1, 1, 0, 0, 1, 0,
+  0, 0, 0, 0, 1, 1, 0, 1, 1, 1,
+  1, 1, 1, 0, 0, 0, 1, 1, 1, 0,
+  0, 1, 0, 0, 1, 1, 0, 0, 0];
+function segSalient(src) { return !!SEG_SALIENCE[segNum(src)]; }
 function segSource(src) {
   var n = segNum(src);
   if (n >= 1 && n <= 8) return "Midnight Forest";
@@ -292,7 +315,47 @@ function segSource(src) {
   if (n >= 29 && n <= 32) return "The Cellar";
   if (n >= 33 && n <= 36) return "Witching Hour";
   if (n >= 37 && n <= 40) return "Pumpkin Hollow";
+  if (n >= 41 && n <= 43) return "Candlelit Seance";
+  if (n >= 44 && n <= 45) return "Lantern Keeper";
+  if (n >= 46 && n <= 48) return "Graveyard Shift";
   return null;
+}
+
+/* ---------- v1.5: round-aware victim selection (brief-02) ----------
+   Rounds 1-2: victim drawn only from high-salience segments among the
+   uniques already played this round (fair while the player learns the
+   game). Round 3+: any played segment may be the victim. Rounds 4+:
+   prefer a victim whose same-session sibling also played this round —
+   the similarity lever (change-deafness rises with scene similarity).
+   No victim repeats within a play session (usedVictims): Agus et al.'s
+   durable-memory result means a once-caught segment is permanently
+   "solved" for that player. Fallbacks keep the round playable when the
+   ideal candidates are absent. */
+var usedVictims = [];
+function pickVictim(playedSrcs, round) {
+  var fresh = [], i, j;
+  for (i = 0; i < playedSrcs.length; i++) {
+    if (usedVictims.indexOf(playedSrcs[i]) < 0) fresh.push(playedSrcs[i]);
+  }
+  var cands = fresh.length ? fresh : playedSrcs.slice();
+  var highs = [];
+  for (j = 0; j < cands.length; j++) if (segSalient(cands[j])) highs.push(cands[j]);
+  var pool = (round <= 2 && highs.length) ? highs : cands;
+  if (round >= 4) {
+    var paired = [];
+    for (var m = 0; m < pool.length; m++) {
+      var sess = segSource(pool[m]);
+      for (var n = 0; n < playedSrcs.length; n++) {
+        if (playedSrcs[n] !== pool[m] && segSource(playedSrcs[n]) === sess) {
+          paired.push(pool[m]); break;
+        }
+      }
+    }
+    if (paired.length) pool = paired;
+  }
+  var choice = pool[Math.floor(Math.random() * pool.length)];
+  usedVictims.push(choice);
+  return choice;
 }
 
 /* ---------- Phoenix date helpers (America/Phoenix — no DST) ---------- */
@@ -512,7 +575,7 @@ function renderUnlockCard() {
   if (!state.lastUnlock) { card.style.display = "none"; return; }
   card.style.display = "block";
   $("unlock-text").innerHTML =
-    "That loop you caught was cut from <b>" + state.lastUnlock + "</b> — a full hour-long AuraFlow session. It's on your shelf now.";
+    "That loop you caught was cut from <b>" + state.lastUnlock + "</b> — a real AuraFlow session. It's on your shelf now.";
   $("unlock-link").href = SITE_URL;
 }
 
@@ -521,9 +584,13 @@ function renderUnlockCard() {
    order, same repeat placement for every player. Seeded by YYYYMMDD. */
 function dailyPlan(key) {
   var rnd = mulberry32(key);
-  var victim = 1 + Math.floor(rnd() * 40);
+  /* v1.5: victim from high-salience segments only (fair while the
+     player learns — brief-02), drawn from the full pool. */
+  var highs = [];
+  for (var h = 1; h <= POOL.length; h++) if (SEG_SALIENCE[h]) highs.push(h);
+  var victim = highs[Math.floor(rnd() * highs.length)];
   var order = [];
-  for (var i = 1; i <= 40; i++) order.push(i);
+  for (var i = 1; i <= POOL.length; i++) order.push(i);
   shuffleSeeded(order, rnd);
   var repeatAfter = 6 + Math.floor(rnd() * 3); // repeat is segment #(repeatAfter+1), like free-play round 1
   var vi = order.indexOf(victim);
@@ -607,6 +674,22 @@ function minUniques(round) { return Math.max(3, 7 - round); } // r1:6 r2:5 r3:4 
 function startRound() {
   state.round++;
   state.queue = shuffle(POOL.slice());
+  /* v1.5: rounds 1-2 must always be able to draw a high-salience victim
+     (brief-02 fairness) — guarantee a high-salience segment among the
+     first minU uniques by swapping one to the front if needed. The
+     shuffle's uniqueness and the round timing are untouched. */
+  if (state.round <= 2) {
+    var m0 = minUniques(state.round), hasHigh = false, hiIdx = -1;
+    for (var i = 0; i < state.queue.length; i++) {
+      if (i < m0 && segSalient(state.queue[i])) { hasHigh = true; break; }
+      if (hiIdx < 0 && segSalient(state.queue[i])) hiIdx = i;
+    }
+    if (!hasHigh && hiIdx > 0) {
+      var tmp = state.queue[0];
+      state.queue[0] = state.queue[hiIdx];
+      state.queue[hiIdx] = tmp;
+    }
+  }
   state.playedThisRound = [];
   state.segIndex = 0;
   state.over = false;
@@ -637,7 +720,8 @@ function nextSegment() {
     if (state.repeatIn === 0 && !state.repeatSrc && state.playedThisRound.length > 0) {
       /* arm the repeat for the NEXT segment slot after one more unique may pass:
          pick victim now; it will play when repeatIn hits 0. */
-      state.repeatSrc = state.playedThisRound[Math.floor(Math.random() * state.playedThisRound.length)];
+      /* v1.5: round-aware victim selection (brief-02) — see pickVictim. */
+      state.repeatSrc = pickVictim(state.playedThisRound, state.round);
       state.repeatIn = Math.floor(Math.random() * 2); // 0 = next segment, 1 = one more unique first
       if (state.repeatIn === 0) { /* victim plays as this next segment instead */
         /* swap: put the just-drawn unique back, play victim now */
@@ -851,6 +935,7 @@ $("startbtn").addEventListener("click", function () {
   renderHintBtn(); // free play stays pure: no hint button
   $("mode-line").textContent = "";
   state.streak = 0; state.score = 0; state.round = 0;
+  usedVictims = []; // v1.5: fresh victim memory per play session
   updateHUD();
   show("game");
   startRound();
@@ -859,6 +944,7 @@ $("againbtn").addEventListener("click", function () {
   if (state.mode === "daily") { startDaily(); return; }
   state.lastUnlock = null; state.pbText = "";
   state.streak = 0; state.score = 0; state.round = 0;
+  usedVictims = []; // v1.5: fresh victim memory per play session
   $("share-note").textContent = "";
   updateHUD();
   show("game");
@@ -927,7 +1013,7 @@ function renderStats() {
     ["Best streak · daily", days(bst)],
     ["Fastest catch", s.fastestCatch !== null && s.fastestCatch !== undefined ? fmtClock(s.fastestCatch) : "—"],
     ["Closest near-miss", s.closestMiss !== null && s.closestMiss !== undefined ? s.closestMiss.toFixed(1) + "s" : "—"],
-    ["Sessions unlocked", unlockedList().length + " of 7"]
+    ["Sessions unlocked", unlockedList().length + " of 10"]
   ];
   var html = "";
   for (var i = 0; i < rows.length; i++) {
