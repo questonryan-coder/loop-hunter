@@ -1,5 +1,31 @@
 # Loop Hunter — Changelog
 
+## v1.6 — 2026-11-10 (weekly autopilot run) — waveform cue + 8 new segments
+
+1. **Improve — accessibility (visual waveform cue option):** a home-screen
+   toggle (〰️ Visual cue, persisted as `lh_wave_v1`, default OFF) draws a
+   live waveform of the current segment on a canvas in the game screen via
+   a WebAudio AnalyserNode fed by the game's own audio element. Same
+   segment => same sound => same shape, so the cue is fair in the same way
+   the seeded visual already is. Any WebAudio failure disables the cue
+   silently; with the toggle off the game is byte-for-byte the v1.5
+   listening experience. This closes the backlog's accessibility item.
+2. **Add — pool 48 → 56:** seg49–56 cut from two NEW published masters
+   never cut before — Autumn Rain ×4 (offsets 300/1200/2100/3000s) and
+   Crackling Fireplace ×4 (420/1350/2250/3150s), both one-hour AuraFlow
+   soundscape sessions (podcast ep004/ep005) — 10.0s, 128kbps, 0.4s fades,
+   non-overlapping windows, no source-seconds reused. `SEG_SOURCE`/
+   `SEG_DUR` extended; unlock shelf and stats now count 12 sessions.
+   Salience measured with the same transient-contrast heuristic: all 8
+   are low (rain/fireplace are washes — provenance appended in
+   `hidden_files/loop-hunter-salience/provenance.txt`), so rounds 1–2
+   fairness is untouched and the new segments deepen the harder rounds.
+
+Verified: Node harness 16/16 (script compiles, SEG_DUR/SEG_SALIENCE 57
+entries, seg49–56 durations/salience, 22 highs preserved, wave toggle +
+analyser wiring, first-100 unlock line + OG tags preserved, footer
+v1.6, stats "of 12"); live recheck after push (see loop-hunter-log.jsonl).
+
 ## v1.5 — 2026-11-03 (weekly autopilot run) — salience-tuned fairness + 8 new segments
 
 1. **Improve — fairness/difficulty tuning (research brief-02 spec):** every

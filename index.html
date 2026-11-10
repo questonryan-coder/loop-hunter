@@ -148,6 +148,7 @@
   body.haunted{--gold:#ff9a3c;}
   body.haunted .moon{filter:drop-shadow(0 0 18px rgba(255,154,60,.6));}
   #seasonal-line{color:var(--gold); font-size:1rem; letter-spacing:.04em; margin:2px 0 8px;}
+  #wave{width:100%; height:54px; display:none; margin:8px 0 0; background:rgba(7,11,26,.55); border:1px solid rgba(154,166,214,.25); border-radius:10px;}
   footer{position:relative; z-index:1; color:var(--dim); font-size:.78rem; padding:0 16px 26px; text-align:center;}
 </style>
 </head>
@@ -170,6 +171,8 @@
     <button class="big-start" id="startbtn">▶ Start Listening</button>
     <p class="small" id="bestline"></p>
     <p><button class="ghost" id="statsbtn">📊 Your stats</button></p>
+    <p><button class="ghost" id="wavebtn">〰️ Visual cue: Off</button></p>
+    <p class="small">Visual cue draws a live waveform of the sound as it plays — an optional extra sense for the hunt. Off by default; the game stays ears-first.</p>
     <div class="card" id="stats-card" style="display:none;">
       <p style="margin-bottom:.2em;">📊 <b>Your stats</b></p>
       <div class="stats-grid" id="stats-body"></div>
@@ -201,6 +204,7 @@
     </div>
     <div id="nowplaying">Segment #1</div>
     <div id="progressbar"><div id="progress"></div></div>
+    <canvas id="wave" width="520" height="54"></canvas>
     <button id="loopbtn">THAT'S<br>A LOOP!<small>tap when this segment is the repeat</small></button>
     <div id="feedback"></div>
     <p style="margin:10px 0 0;"><button class="ghost" id="hintbtn" style="display:none;">💡 Hint (one per day)</button></p>
@@ -250,15 +254,15 @@
     </div>
   </section>
 </main>
-<footer>Loop Hunter v1.5 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper &amp; Graveyard Shift.</footer>
+<footer>Loop Hunter v1.6 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper, Graveyard Shift, Autumn Rain &amp; Crackling Fireplace.</footer>
 
 <script>
 "use strict";
-/* ---------- Loop Hunter v1.5 ----------
-   Pool: 48 segments cut from real AuraFlow masters (Midnight Forest,
+/* ---------- Loop Hunter v1.6 ----------
+   Pool: 56 segments cut from real AuraFlow masters (Midnight Forest,
    Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar,
    Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper,
-   Graveyard Shift). Each segment carries a landmark-salience tag
+   Graveyard Shift, Autumn Rain, Crackling Fireplace). Each segment carries a landmark-salience tag
    (SEG_SALIENCE: 1 = distinctive transient events, 0 = pure wash),
    measured by transient-contrast (P95-median)/mean of 50ms RMS frames
    with envelope spot-checks (method: files/research/brief-02). The
@@ -272,7 +276,7 @@
    while it plays. False tap or letting it finish = game over.   */
 
 var POOL = [];
-for (var i = 1; i <= 48; i++) POOL.push("segments/seg" + (i < 10 ? "0" + i : i) + ".mp3");
+for (var i = 1; i <= 56; i++) POOL.push("segments/seg" + (i < 10 ? "0" + i : i) + ".mp3");
 var GAME_URL = "https://questonryan-coder.github.io/loop-hunter/";
 var SITE_URL = "https://auraflowfocus.com";
 
@@ -289,7 +293,8 @@ var SITE_URL = "https://auraflowfocus.com";
 var SEG_DUR = [0,
   10, 9,11, 8,12, 9,10,11, 11, 8,10,12, 9,11, 8,10, 9,12, 8,10,11, 8,12, 9,
    9,11,10,12, 9,11,10,12, 9,11,10,12, 9,11,10,12,
-  10,10,10,10,10,10,10,10]; // seg41-48 ffprobe-measured, all 10.00s
+  10,10,10,10,10,10,10,10, // seg41-48 ffprobe-measured, all 10.00s
+  10,10,10,10,10,10,10,10]; // seg49-56 ffprobe-measured, all 10.00s
 function segNum(src) { var m = /seg(\d+)\.mp3/.exec(src); return m ? parseInt(m[1], 10) : 0; }
 function segDur(src) { return SEG_DUR[segNum(src)] || 10; }
 /* ---------- v1.5: landmark salience tags (brief-02) ----------
@@ -304,7 +309,8 @@ var SEG_SALIENCE = [
   0, 1, 1, 1, 1, 1, 0, 0, 1, 0,
   0, 0, 0, 0, 1, 1, 0, 1, 1, 1,
   1, 1, 1, 0, 0, 0, 1, 1, 1, 0,
-  0, 1, 0, 0, 1, 1, 0, 0, 0];
+  0, 1, 0, 0, 1, 1, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0]; // seg49-56 all low (rain/fireplace washes, measured 2026-11-10)
 function segSalient(src) { return !!SEG_SALIENCE[segNum(src)]; }
 function segSource(src) {
   var n = segNum(src);
@@ -318,6 +324,8 @@ function segSource(src) {
   if (n >= 41 && n <= 43) return "Candlelit Seance";
   if (n >= 44 && n <= 45) return "Lantern Keeper";
   if (n >= 46 && n <= 48) return "Graveyard Shift";
+  if (n >= 49 && n <= 52) return "Autumn Rain";
+  if (n >= 53 && n <= 56) return "Crackling Fireplace";
   return null;
 }
 
@@ -912,7 +920,7 @@ function startDaily() {
   nextSegment();
 }
 
-$("dailybtn").addEventListener("click", startDaily);
+$("dailybtn").addEventListener("click", function () { if (waveOn) ensureWaveAudio(); startDaily(); });
 $("dcopybtn").addEventListener("click", function () {
   var text = $("daily-sharetext").textContent;
   if (navigator.clipboard) {
@@ -930,6 +938,7 @@ $("dsharebtn").addEventListener("click", function () {
 });
 
 $("startbtn").addEventListener("click", function () {
+  if (waveOn) ensureWaveAudio();
   state.mode = "free"; state.script = null; state.lastUnlock = null;
   state.hintWin = null; state.hintThisAttempt = false; state.pbText = "";
   renderHintBtn(); // free play stays pure: no hint button
@@ -1013,7 +1022,7 @@ function renderStats() {
     ["Best streak · daily", days(bst)],
     ["Fastest catch", s.fastestCatch !== null && s.fastestCatch !== undefined ? fmtClock(s.fastestCatch) : "—"],
     ["Closest near-miss", s.closestMiss !== null && s.closestMiss !== undefined ? s.closestMiss.toFixed(1) + "s" : "—"],
-    ["Sessions unlocked", unlockedList().length + " of 10"]
+    ["Sessions unlocked", unlockedList().length + " of 12"]
   ];
   var html = "";
   for (var i = 0; i < rows.length; i++) {
@@ -1148,9 +1157,66 @@ function seasonalSkin() {
   }
 }
 
+/* ---------- v1.6: optional visual waveform cue (accessibility) ----------
+   A home-screen toggle (persisted as lh_wave_v1, default OFF) draws a
+   live waveform of the current segment on a canvas in the game screen,
+   via a WebAudio AnalyserNode fed by the game's own audio element.
+   Same segment => same sound => same shape, so the cue is fair in the
+   same way the seeded visual is. Any WebAudio failure disables the cue
+   silently and the game plays exactly as before. */
+var waveCtx = null, waveAnalyser = null, waveOn = false;
+try { waveOn = localStorage.getItem("lh_wave_v1") === "1"; } catch (e) { waveOn = false; }
+function ensureWaveAudio() {
+  if (waveAnalyser) { if (waveCtx && waveCtx.state === "suspended") waveCtx.resume(); return true; }
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    waveCtx = new AC();
+    var srcNode = waveCtx.createMediaElementSource(audio);
+    waveAnalyser = waveCtx.createAnalyser();
+    waveAnalyser.fftSize = 1024;
+    srcNode.connect(waveAnalyser);
+    waveAnalyser.connect(waveCtx.destination);
+    if (waveCtx.state === "suspended") waveCtx.resume();
+    return true;
+  } catch (e) { waveAnalyser = null; return false; }
+}
+function renderWaveBtn() {
+  var b = $("wavebtn"); if (!b) return;
+  b.textContent = waveOn ? "〰️ Visual cue: On" : "〰️ Visual cue: Off";
+  var c = $("wave"); if (c) c.style.display = waveOn ? "block" : "none";
+}
+$("wavebtn").addEventListener("click", function () {
+  waveOn = !waveOn;
+  try { localStorage.setItem("lh_wave_v1", waveOn ? "1" : "0"); } catch (e) {}
+  if (waveOn && !ensureWaveAudio()) { waveOn = false; try { localStorage.setItem("lh_wave_v1", "0"); } catch (e) {} }
+  renderWaveBtn();
+});
+(function drawWave() {
+  requestAnimationFrame(drawWave);
+  var c = $("wave");
+  if (!c || !waveOn || !waveAnalyser) return;
+  if (c.style.display === "none") return;
+  var g = c.getContext("2d"), W = c.width, H = c.height;
+  var data = new Uint8Array(waveAnalyser.fftSize);
+  waveAnalyser.getByteTimeDomainData(data);
+  g.clearRect(0, 0, W, H);
+  g.beginPath();
+  var step = Math.max(1, Math.floor(data.length / W));
+  for (var x = 0; x < W; x++) {
+    var v = data[x * step] / 128 - 1;
+    var y = H / 2 + v * (H / 2 - 4);
+    if (x === 0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  g.strokeStyle = "#5fe3c8"; g.lineWidth = 2;
+  g.shadowColor = "rgba(95,227,200,.7)"; g.shadowBlur = 6;
+  g.stroke(); g.shadowBlur = 0;
+})();
+
 /* ---------- v1.2 init ---------- */
 renderDailyHome();
 renderShelf();
+renderWaveBtn();
 seasonalSkin();
 /* ---------- v1.3 init ---------- */
 tickCountdown();
