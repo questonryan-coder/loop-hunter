@@ -1,5 +1,63 @@
 # Loop Hunter — Changelog
 
+## v1.8 — 2026-11-17 (owner-ordered extra pass) — Endless Drift + tip jar + streak celebration
+
+Queston's direct order (Nov 17): "keep making it more EPIC, more entertaining
+and feel free to add a tip jar." Three ships in one pass:
+
+1. **Add — Endless Drift mode (closes the last backlog item):** a fourth
+   mode on the home screen — the calm counterpart to Timed Hunt. No clock,
+   no game over. Rounds run long (`minUniques` = 8) and victim selection
+   stays at round-1 fairness all session (high-salience victims only, via
+   `pickVictim(…, 1)`; `startRound` keeps the gentle high-salience seeding
+   every drift round). A catch grows the streak and the session total,
+   then the stream flows into the next round after a 1.8s beat. A slipped
+   loop costs only the streak; a false call costs only the streak too —
+   the segment keeps playing and the real repeat is still out there
+   (stats record just the near-miss, the round isn't over). "🌊 End the
+   drift" on the game screen ends the session whenever the player likes:
+   the result screen shows loops caught, best streak this drift, and the
+   all-time drift best. Bests persist in `localStorage lh_drift_v1`
+   ({sessions, totalCatches, bestStreak}) and show on the home card.
+   Drift catches still unlock sessions and feed the stats view;
+   `saveBest()` is mode-guarded so a long drift's accumulated score can
+   never inflate the free-play bests. Drift gets its own share text.
+2. **Add — tip jar:** Queston's verified PayPal link
+   (https://paypal.me/queston, the same one live in Chef-Vision's
+   Profile) in two quiet spots: a line on the home screen and a line on
+   the game-over card after the links list. Wording is opt-in and
+   guilt-free ("totally optional, always appreciated. The hunt stays
+   free either way."), `target="_blank" rel="noopener"`, never shown
+   during gameplay, no counts or claims.
+3. **Flourish — streak celebration:** catching loops back-to-back now
+   feels like something. On a streak of 2+ the ambient realm warms —
+   the background particles lean toward gold and brighten (`glowWarm`,
+   decaying over a few seconds in the draw loop). On 3+, a burst of
+   stars / moons / sparkles / leaves pops over the game screen
+   (CSS animation, pruned after ~1.2s, disabled under
+   `prefers-reduced-motion`) and escalating cheer lines join the catch
+   feedback at streaks 3 / 5 / 8 / 12 / 20. Active in free play, Timed
+   Hunt, and Endless Drift. Pure decoration — no score, timing, or
+   fairness effect. Pool unchanged at 56 segments; no new audio cut.
+
+Verified: Node DOM/Audio-stub harness 65/65 (script compiles; data
+consistency at 56; static markers incl. footer v1.8, exactly 2 tip-jar
+links both target=_blank, drift card/buttons/burst layer, first-100
+unlock line, OG tags, safe-area CSS; per-mode minUniques free 6,5,4,3,3
+/ timed 3 / drift 8; daily determinism ×4 dates; pickVictim fairness
+300/300 + no victim repeats; streakCheer thresholds + celebrate warmth;
+Timed Hunt E2E regression — false alarm −5s exactly with no game over,
+clock end records lh_timed_v1; free-play regression — false alarm still
+ends the run; full Endless Drift E2E through the real handlers — catch
+banks streak + session total and rolls on, second catch sets best
+streak + realm warmth, false call resets only the streak with the
+stream still playing, slipped loop resets the streak and rolls into
+the next round, End-the-drift records lh_drift_v1 {sessions:1,
+totalCatches:2, bestStreak:2} with free-play bests untouched, Hunt
+again restarts drift; drift startRound seeding + queue integrity
+60/60); live recheck after push (see loop-hunter-log.jsonl). Backlog
+now empty — future runs: pool expansion when new masters ship.
+
 ## v1.7 — 2026-11-17 (weekly autopilot run) — mobile UX + Timed Hunt mode
 
 1. **Improve — mobile UX:** notch safe-area insets (`env(safe-area-inset-*)`)

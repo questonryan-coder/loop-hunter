@@ -176,11 +176,33 @@
     #loopbtn{font-size:1.35rem;}
     .big-start{padding:15px 30px; font-size:1.15rem;}
   }
+  /* ---------- v1.8 additions: Endless Drift + tip jar + streak celebration ---------- */
+  .drift-start{
+    background:linear-gradient(180deg,#9db8ff,#6f7fe0); color:#0a1030;
+    font-size:1.12rem; letter-spacing:.05em; padding:14px 30px; margin-top:8px;
+    box-shadow:0 0 24px rgba(111,127,224,.3); min-height:48px;
+  }
+  .tipjar{font-size:.9rem; color:var(--dim); margin:.7em 0;}
+  .tipjar a{color:var(--gold); text-decoration:none; border-bottom:1px dotted var(--gold);}
+  .tipjar a:hover{color:var(--teal); border-bottom-color:var(--teal);}
+  #burst{position:fixed; inset:0; pointer-events:none; z-index:3; overflow:hidden;}
+  .burst-p{
+    position:absolute; left:50%; top:42%; font-size:1.15rem; opacity:0;
+    text-shadow:0 0 10px rgba(244,201,107,.8);
+    animation:burstfly 1.05s ease-out forwards;
+  }
+  @keyframes burstfly{
+    0%{opacity:0; transform:translate(0,0) scale(.5);}
+    12%{opacity:1;}
+    100%{opacity:0; transform:translate(var(--dx),var(--dy)) scale(1.25) rotate(50deg);}
+  }
+  @media (prefers-reduced-motion: reduce){ .burst-p{animation:none; display:none;} }
   footer{position:relative; z-index:1; color:var(--dim); font-size:.78rem; padding:0 16px 26px; text-align:center;}
 </style>
 </head>
 <body>
 <canvas id="glow"></canvas>
+<div id="burst" aria-hidden="true"></div>
 <main>
   <div class="moon" id="moon-emoji">🌙</div>
   <h1>LOOP <b>HUNTER</b></h1>
@@ -220,11 +242,18 @@
       <button class="timed-start" id="timedbtn">▶ Start the 90-second hunt</button>
       <p class="small" id="timed-best"></p>
     </div>
+    <div class="card" id="drift-home">
+      <p style="font-size:1.15rem; margin-bottom:.2em;">🌊 <b>Endless Drift</b></p>
+      <p class="small">No clock, no game over. The stream just flows — longer, gentler rounds. Tap when you catch the repeat; streaks and catches pile up for as long as you care to drift. Step out whenever you're ready.</p>
+      <button class="drift-start" id="driftbtn">▶ Start drifting</button>
+      <p class="small" id="drift-best"></p>
+    </div>
     <div class="card" id="shelf" style="display:none;">
       <p style="margin-bottom:.2em;">🔓 <b>Your unlocked sessions</b></p>
       <p class="small">Caught loops unlock the full session behind the sound. Tap one to listen at auraflowfocus.com:</p>
       <p id="shelf-list"></p>
     </div>
+    <p class="small tipjar">☕ Loop Hunter is free to play. If it made your night, <a href="https://paypal.me/queston" target="_blank" rel="noopener">a tip for the maker</a> is never expected — and always appreciated.</p>
   </section>
 
   <!-- GAME -->
@@ -242,6 +271,7 @@
     <button id="loopbtn">THAT'S<br>A LOOP!<small>tap when this segment is the repeat</small></button>
     <div id="feedback"></div>
     <p style="margin:10px 0 0;"><button class="ghost" id="hintbtn" style="display:none;">💡 Hint (one per day)</button></p>
+    <p style="margin:2px 0 0;"><button class="ghost" id="enddriftbtn" style="display:none;">🌊 End the drift</button></p>
     <p id="hint-indicator" style="display:none;">👂 the loop is close… listen sharp</p>
   </section>
 
@@ -259,6 +289,7 @@
         🎵 <a href="https://open.spotify.com/show/2KHJbW1DuMM6CTgnUAAyqK" target="_blank" rel="noopener">Spotify — AuraFlow</a><br>
         🛍️ <a href="https://qstnryan.gumroad.com" target="_blank" rel="noopener">Gumroad — AuraFlow store (albums, audiobook &amp; more)</a>
       </p>
+      <p class="tipjar">☕ Enjoying the hunt? <a href="https://paypal.me/queston" target="_blank" rel="noopener">Tip the maker a coffee</a> — totally optional, always appreciated. The hunt stays free either way.</p>
       <button class="share" id="sharebtn">Share my hunt 📤</button>
       <button class="ghost" id="againbtn">Hunt again</button>
       <p class="small" id="share-note"></p>
@@ -288,11 +319,11 @@
     </div>
   </section>
 </main>
-<footer>Loop Hunter v1.7 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper, Graveyard Shift, Autumn Rain &amp; Crackling Fireplace.</footer>
+<footer>Loop Hunter v1.8 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper, Graveyard Shift, Autumn Rain &amp; Crackling Fireplace.</footer>
 
 <script>
 "use strict";
-/* ---------- Loop Hunter v1.7 ----------
+/* ---------- Loop Hunter v1.8 ----------
    Pool: 56 segments cut from real AuraFlow masters (Midnight Forest,
    Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar,
    Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper,
@@ -490,7 +521,10 @@ var state = {
   /* v1.7 */
   timedEndsAt: 0,     // timed mode: wall-clock ms when the 90s clock runs out
   timedTimer: null,   // timed mode: countdown interval id
-  timedLeft: 90       // timed mode: whole seconds remaining (display + expiry)
+  timedLeft: 90,      // timed mode: whole seconds remaining (display + expiry)
+  /* v1.8 */
+  driftCatches: 0,    // drift mode: total loops caught this drift session
+  driftBestStreak: 0  // drift mode: best consecutive-catch streak this session
 };
 
 var $ = function (id) { return document.getElementById(id); };
@@ -506,6 +540,9 @@ function best() {
   };
 }
 function saveBest() {
+  /* v1.8: Endless Drift keeps its own bests (lh_drift_v1) — a long
+     drift's accumulated score must not inflate the free-play bests. */
+  if (state.mode === "drift") return;
   var b = best();
   if (state.streak > b.streak) localStorage.setItem("lh_bestStreak", String(state.streak));
   if (state.score > b.score) localStorage.setItem("lh_bestScore", String(state.score));
@@ -717,6 +754,7 @@ function shuffle(a) {
 /* Minimum unique segments before the repeat may appear — shrinks as rounds advance. */
 function minUniques(round) {
   if (state.mode === "timed") return 3; // v1.7: Timed Hunt rounds run short and fast
+  if (state.mode === "drift") return 8; // v1.8: Endless Drift rounds run long and gentle
   return Math.max(3, 7 - round); // r1:6 r2:5 r3:4 r4+:3
 }
 
@@ -728,6 +766,47 @@ function buzz(pattern) {
   try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
 }
 
+/* ---------- v1.8: streak celebration ----------
+   Catching loops back-to-back should FEEL like something. On a catch
+   streak of 2+, the ambient realm warms (glowWarm, consumed by the
+   draw loop below — particles drift toward gold and brighten, then
+   cool back down). On 3+, a burst of stars / moons / leaves pops over
+   the game screen and an escalating cheer line joins the feedback.
+   Pure decoration: no score, timing, or fairness effect anywhere. */
+var glowWarm = 0;
+function streakCheer(n) {
+  if (n === 3) return "🔥 Three in a row — you're warming up.";
+  if (n === 5) return "🔥 Five straight — the stream is running out of places to hide.";
+  if (n === 8) return "🌟 Eight in a row — those ears are legendary.";
+  if (n === 12) return "🌟 Twelve straight — the moon itself is impressed.";
+  if (n === 20) return "🌙 Twenty in a row. Unreal. The stream bows to you.";
+  return "";
+}
+function celebrate(n) {
+  if (n >= 2) glowWarm = Math.min(1, 0.2 + n * 0.1);
+  if (n < 3) return;
+  try {
+    var box = $("burst");
+    if (!box || !box.appendChild) return;
+    var glyphs = ["⭐", "🌙", "✨", "🍂", "⭐", "✨"];
+    var count = Math.min(10 + n, 26);
+    for (var i = 0; i < count; i++) {
+      var el = document.createElement("span");
+      el.className = "burst-p";
+      el.textContent = glyphs[i % glyphs.length];
+      el._born = Date.now();
+      var dx = Math.round((Math.random() - 0.5) * 280);
+      var dy = Math.round(Math.random() * 220 - 190);
+      if (el.style.setProperty) {
+        el.style.setProperty("--dx", dx + "px");
+        el.style.setProperty("--dy", dy + "px");
+      }
+      el.style.left = (50 + (Math.random() - 0.5) * 24) + "%";
+      box.appendChild(el);
+    }
+  } catch (e) { /* decoration only — never break a catch */ }
+}
+
 function startRound() {
   state.round++;
   state.queue = shuffle(POOL.slice());
@@ -735,7 +814,7 @@ function startRound() {
      (brief-02 fairness) — guarantee a high-salience segment among the
      first minU uniques by swapping one to the front if needed. The
      shuffle's uniqueness and the round timing are untouched. */
-  if (state.round <= 2) {
+  if (state.round <= 2 || state.mode === "drift") { // v1.8: drift keeps the gentle seeding every round
     var m0 = minUniques(state.round), hasHigh = false, hiIdx = -1;
     for (var i = 0; i < state.queue.length; i++) {
       if (i < m0 && segSalient(state.queue[i])) { hasHigh = true; break; }
@@ -777,8 +856,10 @@ function nextSegment() {
     if (state.repeatIn === 0 && !state.repeatSrc && state.playedThisRound.length > 0) {
       /* arm the repeat for the NEXT segment slot after one more unique may pass:
          pick victim now; it will play when repeatIn hits 0. */
-      /* v1.5: round-aware victim selection (brief-02) — see pickVictim. */
-      state.repeatSrc = pickVictim(state.playedThisRound, state.round);
+      /* v1.5: round-aware victim selection (brief-02) — see pickVictim.
+         v1.8: drift always draws with round-1 fairness (high-salience
+         victims only) — gentle no matter how long the drift runs. */
+      state.repeatSrc = pickVictim(state.playedThisRound, state.mode === "drift" ? 1 : state.round);
       state.repeatIn = Math.floor(Math.random() * 2); // 0 = next segment, 1 = one more unique first
       if (state.repeatIn === 0) { /* victim plays as this next segment instead */
         /* swap: put the just-drawn unique back, play victim now */
@@ -824,6 +905,17 @@ audio.addEventListener("ended", function () {
       setTimeout(function () { if (!state.over) { feedback("", true); startRound(); } }, 1100);
       return;
     }
+    if (state.mode === "drift") {
+      /* v1.8: in Endless Drift a slipped loop costs the streak, never
+         the session — the stream simply flows into the next round. */
+      recordStatsRound("missed", null, nm.dist);
+      state.streak = 0; updateHUD();
+      buzz([60, 40, 60]);
+      feedback("🌫️ That was the repeat — it drifted past uncaught. Streak resets; the stream flows on…", false);
+      state.playing = false;
+      setTimeout(function () { if (!state.over) { feedback("", true); startRound(); } }, 1400);
+      return;
+    }
     if (state.mode === "daily") finishDaily("missed", atTime, nm);
     gameOver(false, "The loop slipped past you — that last segment was the repeat, and it played out uncaught. 🌫️", nm);
     return;
@@ -840,6 +932,8 @@ $("loopbtn").addEventListener("click", function () {
     state.score++;               // the caught repeat counts as survived
     state.streak++;
     saveBest(); updateHUD(); buzz(30);
+    celebrate(state.streak); /* v1.8: streak celebration (burst + realm warmth) */
+    var cheer = streakCheer(state.streak);
     var nm = nearMissInfo("caught", guess, state.loopOffset, {});
     /* v1.3: stats + personal best (fastest catch, by time into the round) */
     if (recordStatsRound("caught", guess, nm.dist)) {
@@ -855,6 +949,7 @@ $("loopbtn").addEventListener("click", function () {
       /* v1.7: Timed Hunt — a catch banks the loop and the next round
          starts fast; only the clock ends the run. */
       feedback("🎯 Caught it! " + state.streak + " loop" + (state.streak === 1 ? "" : "s") + " banked — " + Math.max(0, state.timedLeft) + "s left.\n" + nm.text +
+               (cheer ? "\n" + cheer : "") +
                (name ? "\n🔓 Unlocked: " + name : ""), true);
       var tbtn = $("loopbtn"); tbtn.disabled = true;
       setTimeout(function () {
@@ -871,7 +966,26 @@ $("loopbtn").addEventListener("click", function () {
       gameOver(true, "🎯 Caught it! That WAS today's repeat.", nm);
       return;
     }
+    if (state.mode === "drift") {
+      /* v1.8: Endless Drift — a catch grows the streak and the session
+         total, then the stream flows into the next gentle round. */
+      state.driftCatches++;
+      if (state.streak > state.driftBestStreak) state.driftBestStreak = state.streak;
+      updateHUD();
+      feedback("🎯 Caught it! Drift streak " + state.streak + " · " + state.driftCatches + " caught this drift.\n" + nm.text +
+               (cheer ? "\n" + cheer : "") +
+               (name ? "\n🔓 Unlocked: " + name + (isNew ? " — added to your shelf on the home screen." : " (already on your shelf)") : ""), true);
+      var dbtn = $("loopbtn"); dbtn.disabled = true;
+      setTimeout(function () {
+        dbtn.disabled = false;
+        if (state.over) return;
+        feedback("", true);
+        startRound();
+      }, 1800);
+      return;
+    }
     feedback("🎯 Caught it! That WAS the repeat.\n" + nm.text +
+             (cheer ? "\n" + cheer : "") +
              (name ? "\n🔓 Unlocked: " + name + (isNew ? " — added to your shelf on the home screen." : " (already on your shelf)") : "") +
              (state.pbText ? "\n" + state.pbText : ""), true);
     var btn = $("loopbtn"); btn.disabled = true;
@@ -915,6 +1029,20 @@ $("loopbtn").addEventListener("click", function () {
         feedback("", true);
         startRound();
       }, 1100);
+      return;
+    }
+    if (state.mode === "drift") {
+      /* v1.8: Endless Drift — a false call costs only the streak. The
+         segment keeps playing and the real repeat is still out there;
+         the round isn't over, so stats record only the near-miss. */
+      var dst = statsStore(), da = Math.abs(nm2.dist || 0);
+      if (dst.closestMiss === null || dst.closestMiss === undefined || da < dst.closestMiss) {
+        dst.closestMiss = Math.round(da * 10) / 10;
+        saveStats(dst);
+      }
+      state.streak = 0; updateHUD();
+      buzz([50, 40, 50]);
+      feedback("🌊 Not yet — that one was brand new. Your streak resets, but the drift flows on…\n" + nm2.text, false);
       return;
     }
     if (state.mode === "daily") finishDaily("wolf", guess, nm2);
@@ -974,6 +1102,16 @@ function gameOver(_, reason, nm) {
       "Timed Hunt: " + state.streak + " loop" + (state.streak === 1 ? "" : "s") + " caught in 90 seconds · " +
       state.score + " segments survived · Best Timed Hunt: " + tb.best + " loop" + (tb.best === 1 ? "" : "s");
     $("daily-card").style.display = "none";
+  } else if (state.mode === "drift") {
+    /* v1.8: Endless Drift result — the session tally, not a defeat */
+    var db = driftStore();
+    $("final-score").textContent = state.driftCatches;
+    $("final-detail").textContent =
+      "Endless Drift: " + state.driftCatches + " loop" + (state.driftCatches === 1 ? "" : "s") + " caught · " +
+      "best streak this drift " + Math.max(state.driftBestStreak || 0, state.streak || 0) +
+      " · Your best drift streak: " + (db.bestStreak || 0) +
+      " · " + (db.totalCatches || 0) + " caught drifting in total";
+    $("daily-card").style.display = "none";
   } else {
     $("final-score").textContent = state.score;
     $("final-detail").textContent =
@@ -1001,6 +1139,7 @@ function startDaily() {
   var key = phoenixKey();
   if (state.timedTimer) { clearInterval(state.timedTimer); state.timedTimer = null; }
   $("h-time-wrap").style.display = "none";
+  $("enddriftbtn").style.display = "none";
   state.mode = "daily";
   state.dailyPlan = dailyPlan(key);
   state.script = state.dailyPlan.stream.slice();
@@ -1064,6 +1203,7 @@ function startTimed() {
   state.hintWin = null; state.hintThisAttempt = false;
   usedVictims = []; // fresh victim memory per play session, as in free play
   renderHintBtn(); // timed play stays pure: no hint button
+  $("enddriftbtn").style.display = "none";
   $("mode-line").textContent = "⏱️ TIMED HUNT — 90 SECONDS";
   $("h-time-wrap").style.display = "block";
   state.timedEndsAt = Date.now() + TIMED_SECONDS * 1000;
@@ -1085,6 +1225,58 @@ function endTimed() {
   gameOver(true, "⏱️ Time! The 90 seconds are up.", null);
 }
 $("timedbtn").addEventListener("click", function () { if (waveOn) ensureWaveAudio(); startTimed(); });
+
+/* ---------- v1.8: Endless Drift mode ----------
+   The calm counterpart to Timed Hunt: no clock, no game over. Rounds
+   run long (minUniques = 8) with round-1 fairness all session long.
+   A catch grows the streak and the session total; a slipped loop or
+   a false call costs only the streak — the stream always flows on.
+   The player steps out with "End the drift" whenever they like.
+   Bests live in lh_drift_v1: { sessions, totalCatches, bestStreak }. */
+function driftStore() {
+  try { return JSON.parse(localStorage.getItem("lh_drift_v1") || "{}"); }
+  catch (e) { return {}; }
+}
+function recordDrift() {
+  var s = driftStore();
+  s.sessions = (s.sessions || 0) + 1;
+  s.totalCatches = (s.totalCatches || 0) + state.driftCatches;
+  s.bestStreak = Math.max(s.bestStreak || 0, state.driftBestStreak || 0, state.streak || 0);
+  try { localStorage.setItem("lh_drift_v1", JSON.stringify(s)); } catch (e) {}
+  return s;
+}
+function renderDriftBest() {
+  var s = driftStore(), el = $("drift-best");
+  if (!el) return;
+  el.textContent = s.bestStreak
+    ? "Your best drift streak: " + s.bestStreak + " · " + (s.totalCatches || 0) + " loop" + (s.totalCatches === 1 ? "" : "s") + " caught drifting so far"
+    : "";
+}
+function startDrift() {
+  if (state.timedTimer) { clearInterval(state.timedTimer); state.timedTimer = null; }
+  $("h-time-wrap").style.display = "none";
+  state.mode = "drift";
+  state.script = null;
+  state.streak = 0; state.score = 0; state.round = 0;
+  state.driftCatches = 0; state.driftBestStreak = 0;
+  state.lastUnlock = null; state.pbText = "";
+  state.hintWin = null; state.hintThisAttempt = false;
+  usedVictims = []; // fresh victim memory per play session, as in free play
+  renderHintBtn(); // drift stays pure: no hint button
+  $("enddriftbtn").style.display = "inline-block";
+  $("mode-line").textContent = "🌊 ENDLESS DRIFT — NO CLOCK, NO GAME OVER";
+  updateHUD();
+  show("game");
+  startRound();
+}
+function endDrift() {
+  if (state.over) return;
+  recordDrift();
+  renderDriftBest();
+  gameOver(true, "🌊 You step out of the drift — the stream keeps flowing without you.", null);
+}
+$("driftbtn").addEventListener("click", function () { if (waveOn) ensureWaveAudio(); startDrift(); });
+$("enddriftbtn").addEventListener("click", function () { if (state.mode === "drift") endDrift(); });
 
 $("dailybtn").addEventListener("click", function () { if (waveOn) ensureWaveAudio(); startDaily(); });
 $("dcopybtn").addEventListener("click", function () {
@@ -1110,6 +1302,7 @@ $("startbtn").addEventListener("click", function () {
   state.mode = "free"; state.script = null; state.lastUnlock = null;
   state.hintWin = null; state.hintThisAttempt = false; state.pbText = "";
   renderHintBtn(); // free play stays pure: no hint button
+  $("enddriftbtn").style.display = "none";
   $("mode-line").textContent = "";
   state.streak = 0; state.score = 0; state.round = 0;
   usedVictims = []; // v1.5: fresh victim memory per play session
@@ -1120,6 +1313,7 @@ $("startbtn").addEventListener("click", function () {
 $("againbtn").addEventListener("click", function () {
   if (state.mode === "daily") { startDaily(); return; }
   if (state.mode === "timed") { $("share-note").textContent = ""; startTimed(); return; }
+  if (state.mode === "drift") { $("share-note").textContent = ""; startDrift(); return; }
   state.lastUnlock = null; state.pbText = "";
   state.streak = 0; state.score = 0; state.round = 0;
   usedVictims = []; // v1.5: fresh victim memory per play session
@@ -1132,6 +1326,8 @@ $("againbtn").addEventListener("click", function () {
 $("sharebtn").addEventListener("click", function () {
   var text = state.mode === "timed"
     ? "I caught " + state.streak + " loop" + (state.streak === 1 ? "" : "s") + " in 90 seconds in Loop Hunter's Timed Hunt — the AuraFlow game that dares you to find a repeat ⏱️ " + GAME_URL
+    : state.mode === "drift"
+    ? "I caught " + state.driftCatches + " loop" + (state.driftCatches === 1 ? "" : "s") + " drifting in Loop Hunter's Endless Drift — no clock, no game over, just the stream 🌊 " + GAME_URL
     : "I caught " + state.streak + " loop" + (state.streak === 1 ? "" : "s") +
     " and survived " + state.score + " segments in Loop Hunter — the AuraFlow game that dares you to find a repeat 🌙 " + GAME_URL;
   if (navigator.share) {
@@ -1389,6 +1585,7 @@ renderDailyHome();
 renderShelf();
 renderWaveBtn();
 renderTimedBest(); /* v1.7 */
+renderDriftBest(); /* v1.8 */
 seasonalSkin();
 /* ---------- v1.3 init ---------- */
 tickCountdown();
@@ -1425,11 +1622,24 @@ seedVisual("segments/seg01.mp3");
     var p = parts[i];
     var y = (p.y - frame * p.s) % 1; if (y < 0) y += 1;
     var x = p.x + Math.sin(frame / 90 + p.ph) * 0.008;
+    /* v1.8: streak warmth — while glowWarm lasts (set by celebrate()),
+       particles lean toward gold and shine brighter, then cool off. */
+    var hue = p.hue + (44 - p.hue) * glowWarm * (i % 3 === 0 ? 0.8 : 0.25);
+    var alpha = p.a * (0.7 + 0.3 * Math.sin(frame / 40 + p.ph)) * (1 + glowWarm * 0.7);
     ctx.beginPath();
     ctx.arc(x * cv.width, y * cv.height, p.r, 0, Math.PI * 2);
-    ctx.fillStyle = "hsla(" + p.hue + ",85%,72%," + (p.a * (0.7 + 0.3 * Math.sin(frame / 40 + p.ph))) + ")";
-    ctx.shadowColor = "hsla(" + p.hue + ",90%,65%,.8)"; ctx.shadowBlur = 8;
+    ctx.fillStyle = "hsla(" + hue + ",85%,72%," + alpha + ")";
+    ctx.shadowColor = "hsla(" + hue + ",90%,65%,.8)"; ctx.shadowBlur = 8;
     ctx.fill(); ctx.shadowBlur = 0;
+  }
+  if (glowWarm > 0.003) glowWarm *= 0.99; else glowWarm = 0;
+  /* v1.8: prune celebration particles once their animation is done */
+  var bc = $("burst");
+  if (bc && bc.children && bc.removeChild) {
+    var now = Date.now();
+    for (var bi = bc.children.length - 1; bi >= 0; bi--) {
+      if (now - (bc.children[bi]._born || 0) > 1200) bc.removeChild(bc.children[bi]);
+    }
   }
 })();
 </script>
