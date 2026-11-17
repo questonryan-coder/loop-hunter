@@ -197,12 +197,27 @@
     100%{opacity:0; transform:translate(var(--dx),var(--dy)) scale(1.25) rotate(50deg);}
   }
   @media (prefers-reduced-motion: reduce){ .burst-p{animation:none; display:none;} }
+  /* ---------- v1.9 additions: KONG host + Endless Drift backdrop slot ---------- */
+  .host-card{border-color:rgba(244,201,107,.4);}
+  .host-img{
+    width:100%; max-width:420px; height:auto; display:block; margin:0 auto 10px;
+    border-radius:12px; border:1px solid rgba(244,201,107,.45);
+    box-shadow:0 0 24px rgba(244,201,107,.18);
+  }
+  .host-img.small{max-width:280px; margin-top:6px;}
+  #driftbg{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-size:cover; background-position:center;
+    opacity:0; transition:opacity 1.4s ease;
+  }
+  body.drifting #driftbg{opacity:.5;}
   footer{position:relative; z-index:1; color:var(--dim); font-size:.78rem; padding:0 16px 26px; text-align:center;}
 </style>
 </head>
 <body>
 <canvas id="glow"></canvas>
 <div id="burst" aria-hidden="true"></div>
+<div id="driftbg" aria-hidden="true"></div>
 <main>
   <div class="moon" id="moon-emoji">🌙</div>
   <h1>LOOP <b>HUNTER</b></h1>
@@ -216,6 +231,10 @@
       <p>Somewhere in the stream, <b>one earlier segment will secretly play again.</b> The moment you believe what you're hearing is the repeat, hit the big button.</p>
       <p>Catch it and your streak grows. Cry wolf on a fresh segment — or let the loop slip past — and the run ends.</p>
       <p class="small">Every segment is cut from a real, published AuraFlow session. No tricks, no fakes — just your ears against the stream. Headphones recommended. 🎧</p>
+    </div>
+    <div class="card host-card">
+      <img class="host-img" src="assets/kong-host.webp" width="960" height="540" loading="lazy" alt="KONG — the warrior-king gorilla on his stone throne in the golden-hour jungle, host of the hunt">
+      <p style="margin-bottom:0;">🦍 <b>Hosted by KONG.</b> The warrior-king himself keeps this stream — every sound in it rolled out under his watch, and every loop hiding in it answers to him. Hunt well, and he'll know.</p>
     </div>
     <button class="big-start" id="startbtn">▶ Start Listening</button>
     <p class="small" id="bestline"></p>
@@ -289,6 +308,8 @@
         🎵 <a href="https://open.spotify.com/show/2KHJbW1DuMM6CTgnUAAyqK" target="_blank" rel="noopener">Spotify — AuraFlow</a><br>
         🛍️ <a href="https://qstnryan.gumroad.com" target="_blank" rel="noopener">Gumroad — AuraFlow store (albums, audiobook &amp; more)</a>
       </p>
+      <img class="host-img small" src="assets/kong-host.webp" width="960" height="540" loading="lazy" alt="KONG on his stone throne">
+      <p class="small" style="margin-top:0;">🦍 KONG thanks you for hunting his stream.</p>
       <p class="tipjar">☕ Enjoying the hunt? <a href="https://paypal.me/queston" target="_blank" rel="noopener">Tip the maker a coffee</a> — totally optional, always appreciated. The hunt stays free either way.</p>
       <button class="share" id="sharebtn">Share my hunt 📤</button>
       <button class="ghost" id="againbtn">Hunt again</button>
@@ -319,11 +340,11 @@
     </div>
   </section>
 </main>
-<footer>Loop Hunter v1.8 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper, Graveyard Shift, Autumn Rain &amp; Crackling Fireplace.</footer>
+<footer>Loop Hunter v1.9 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper, Graveyard Shift, Autumn Rain &amp; Crackling Fireplace.</footer>
 
 <script>
 "use strict";
-/* ---------- Loop Hunter v1.8 ----------
+/* ---------- Loop Hunter v1.9 ----------
    Pool: 56 segments cut from real AuraFlow masters (Midnight Forest,
    Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar,
    Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper,
@@ -1064,6 +1085,7 @@ function updateHUD() {
 
 function gameOver(_, reason, nm) {
   state.over = true; state.playing = false;
+  document.body.classList.remove("drifting"); /* v1.9: the cloudscape belongs to the drift only */
   audio.pause();
   if (state.timedTimer) { clearInterval(state.timedTimer); state.timedTimer = null; }
   buzz(120);
@@ -1264,6 +1286,7 @@ function startDrift() {
   usedVictims = []; // fresh victim memory per play session, as in free play
   renderHintBtn(); // drift stays pure: no hint button
   $("enddriftbtn").style.display = "inline-block";
+  if (driftBgReady) document.body.classList.add("drifting"); /* v1.9: golden cloudscape, when the owner's photo is in */
   $("mode-line").textContent = "🌊 ENDLESS DRIFT — NO CLOCK, NO GAME OVER";
   updateHUD();
   show("game");
@@ -1277,6 +1300,30 @@ function endDrift() {
 }
 $("driftbtn").addEventListener("click", function () { if (waveOn) ensureWaveAudio(); startDrift(); });
 $("enddriftbtn").addEventListener("click", function () { if (state.mode === "drift") endDrift(); });
+
+/* ---------- v1.9: Endless Drift backdrop slot ----------
+   The owner's golden sunrise sea-of-clouds photo belongs at
+   assets/drift-clouds.jpg. It is preloaded at boot; ONLY if the file
+   actually loads does the backdrop arm (driftBgReady) — while it is
+   absent the drift keeps the ambient starfield treatment, untouched.
+   When armed, startDrift fades it in behind the game (body.drifting)
+   under a dark gradient so the hunt UI stays perfectly readable, and
+   gameOver fades it back out. Menu screens never show it — the drift
+   is its home. */
+var DRIFT_BG_URL = "assets/drift-clouds.jpg";
+var driftBgReady = false;
+(function preloadDriftBg() {
+  try {
+    var im = new Image();
+    im.onload = function () {
+      driftBgReady = true;
+      var d = $("driftbg");
+      if (d) d.style.backgroundImage = 'linear-gradient(rgba(7,11,26,.45), rgba(7,11,26,.65)), url("' + DRIFT_BG_URL + '")';
+      if (state.mode === "drift" && !state.over) document.body.classList.add("drifting");
+    };
+    im.src = DRIFT_BG_URL;
+  } catch (e) { /* no Image / no file — the slot simply stays unarmed */ }
+})();
 
 $("dailybtn").addEventListener("click", function () { if (waveOn) ensureWaveAudio(); startDaily(); });
 $("dcopybtn").addEventListener("click", function () {

@@ -11,6 +11,9 @@ Somewhere in the stream, one earlier segment secretly repeats. Tap **THAT'S A LO
 the moment you hear the repeat. Catch it to build your streak — cry wolf or let it
 slip past, and the run ends.
 
+Hosted by **KONG** 🦍 — the warrior-king on his stone throne keeps this stream,
+and thanks you personally on the result screen.
+
 Four ways to play: **Free play** (endless rounds, one mistake ends the run),
 the **Daily Challenge** (one seeded stream per Phoenix day), **Timed Hunt**
 (90 seconds on the clock — catch as many loops as you can; a false call costs

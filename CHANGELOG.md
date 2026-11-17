@@ -1,5 +1,40 @@
 # Loop Hunter — Changelog
 
+## v1.9 — 2026-11-17 (owner-ordered, same EPIC pass) — KONG hosts + Drift backdrop slot
+
+Two additions on Queston's word the same evening — his new standing law:
+"Anywhere KONG can be useful he should be — but always EPIC, never
+bringing the epic level down."
+
+1. **KONG, your host:** the canonical KONG — the warrior-king gorilla on
+   his stone throne, golden-hour jungle (`assets/kong-host.webp`, derived
+   ONLY from the canonical reference `kong-canonical-form.webp`,
+   2048×1152 → 960×540 webp at q82, 101KB; full frame, no crops, no
+   substitute likeness) — now hosts the hunt in two places: a host card
+   on the home screen under "How it works" ("🦍 Hosted by KONG."), and
+   on the game-over screen directly above the tip jar ("🦍 KONG thanks
+   you for hunting his stream."). Menu and result framing only — he
+   never enters active gameplay, where he'd clutter the listening.
+2. **Endless Drift backdrop slot (owner's golden cloudscape):** Queston
+   approved his golden sunrise sea-of-clouds photo as the Endless Drift
+   backdrop. The upload had not finished syncing when this pass shipped,
+   so the slot ships armed-and-waiting: `#driftbg` layer + a boot-time
+   preload of `assets/drift-clouds.jpg` that sets `driftBgReady` ONLY
+   if the file truly loads. When it lands, dropping the photo at that
+   path is the entire integration — entering a drift fades the
+   cloudscape in behind the game at 50% under a dark gradient
+   (`body.drifting`, 1.4s ease) and game over fades it out; menus never
+   show it. Until then the drift keeps the ambient starfield, untouched.
+
+Verified: Node harness 73/73 — all v1.8 checks plus KONG markers
+(exactly 2 canonical placements, host copy, canonical-form alt text,
+asset on disk at web size), backdrop slot markers, `driftBgReady ===
+false` at boot with the photo absent, and the drift E2E re-run with
+the backdrop armed: `body.drifting` present during the drift, removed
+on the result screen. (First run errored on a harness stub gap —
+classList.remove missing from the test stub, not the game; stub fixed,
+full re-run 73/73.) Live recheck after push (see loop-hunter-log.jsonl).
+
 ## v1.8 — 2026-11-17 (owner-ordered extra pass) — Endless Drift + tip jar + streak celebration
 
 Queston's direct order (Nov 17): "keep making it more EPIC, more entertaining
