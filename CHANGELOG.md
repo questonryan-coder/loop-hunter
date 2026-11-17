@@ -1,5 +1,39 @@
 # Loop Hunter — Changelog
 
+## v1.7 — 2026-11-17 (weekly autopilot run) — mobile UX + Timed Hunt mode
+
+1. **Improve — mobile UX:** notch safe-area insets (`env(safe-area-inset-*)`)
+   on the main column and footer so nothing hides under phone hardware;
+   `overscroll-behavior: none` and `touch-action: manipulation` so a hunt
+   never pull-refreshes or double-tap-zooms mid-listen; every secondary
+   button now meets the 48px tap-target size; a ≤420px layout pass
+   (smaller title, tighter cards, full-size catch button kept); and
+   haptic feedback on phones that support it (`navigator.vibrate`,
+   silent no-op elsewhere) — a short buzz on a catch, a double buzz on a
+   false call or slipped loop, one long buzz when a run ends. With
+   vibration unavailable the game plays exactly as v1.6.
+2. **Add — Timed Hunt mode (backlog: timed hunt):** a third mode on the
+   home screen. 90 seconds on the clock (live TIME cell in the HUD,
+   turns red under 15s); rounds run short (`minUniques` = 3) and a catch
+   rolls straight into the next round after a 1.2s beat. A false call
+   costs 5 seconds instead of the run; a loop that slips past costs
+   only the round. Only the clock ends the run. The result screen shows
+   loops caught in 90 seconds, and the best Timed Hunt score persists
+   (`localStorage lh_timed_v1`, shown on the home card). Timed catches
+   still unlock sessions and feed the stats view exactly like free
+   play; the share text gets a Timed Hunt variant. Free play and the
+   Daily Challenge are untouched (regression-checked). Pool unchanged
+   at 56 segments — no new masters were cut this run; the remaining
+   backlog item is the endless drift-listening mode.
+
+Verified: Node DOM/Audio-stub harness 34/34 (script compiles; static
+markers incl. footer v1.7, OG tags, first-100 unlock line, safe-area
+CSS; per-mode `minUniques`; daily determinism; full Timed Hunt flow —
+catch banks + next round, false alarm −5s with no game over, missed
+repeat restarts the round, clock-out ends the run with best recorded
+in `lh_timed_v1`, Hunt-again restarts timed; free-play false alarm
+still ends the run); live recheck after push (see loop-hunter-log.jsonl).
+
 ## v1.6 — 2026-11-10 (weekly autopilot run) — waveform cue + 8 new segments
 
 1. **Improve — accessibility (visual waveform cue option):** a home-screen

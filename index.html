@@ -149,6 +149,33 @@
   body.haunted .moon{filter:drop-shadow(0 0 18px rgba(255,154,60,.6));}
   #seasonal-line{color:var(--gold); font-size:1rem; letter-spacing:.04em; margin:2px 0 8px;}
   #wave{width:100%; height:54px; display:none; margin:8px 0 0; background:rgba(7,11,26,.55); border:1px solid rgba(154,166,214,.25); border-radius:10px;}
+  /* ---------- v1.7 additions: mobile UX + Timed Hunt ---------- */
+  html{overscroll-behavior:none;}
+  body{-webkit-text-size-adjust:100%;}
+  main{
+    padding-top:calc(20px + env(safe-area-inset-top));
+    padding-left:calc(18px + env(safe-area-inset-left));
+    padding-right:calc(18px + env(safe-area-inset-right));
+  }
+  footer{padding-bottom:calc(26px + env(safe-area-inset-bottom));}
+  button{touch-action:manipulation;}
+  .ghost,.share,.subbtn,.daily-start{min-height:48px;}
+  #hud{flex-wrap:wrap;}
+  #hud .time b{color:var(--teal);}
+  #hud .time.low b{color:var(--danger);}
+  .timed-start{
+    background:linear-gradient(180deg,#8ff5dd,var(--teal)); color:#04382c;
+    font-size:1.12rem; letter-spacing:.05em; padding:14px 30px; margin-top:8px;
+    box-shadow:0 0 24px rgba(95,227,200,.3);
+  }
+  @media (max-width:420px){
+    h1{font-size:1.65rem;}
+    .moon{font-size:2rem;}
+    main{padding-top:calc(14px + env(safe-area-inset-top));}
+    .card{padding:16px 14px;}
+    #loopbtn{font-size:1.35rem;}
+    .big-start{padding:15px 30px; font-size:1.15rem;}
+  }
   footer{position:relative; z-index:1; color:var(--dim); font-size:.78rem; padding:0 16px 26px; text-align:center;}
 </style>
 </head>
@@ -187,6 +214,12 @@
       <p class="milestone-line" id="daily-milestone-home" style="display:none;"></p>
       <p class="small" id="daily-countdown"></p>
     </div>
+    <div class="card" id="timed-home">
+      <p style="font-size:1.15rem; margin-bottom:.2em;">⏱️ <b>Timed Hunt</b></p>
+      <p class="small">90 seconds on the clock. Catch as many loops as you can — rounds run short and fast. A false call costs 5 seconds; a loop that slips past just moves you to the next round. The clock is the only way the run ends.</p>
+      <button class="timed-start" id="timedbtn">▶ Start the 90-second hunt</button>
+      <p class="small" id="timed-best"></p>
+    </div>
     <div class="card" id="shelf" style="display:none;">
       <p style="margin-bottom:.2em;">🔓 <b>Your unlocked sessions</b></p>
       <p class="small">Caught loops unlock the full session behind the sound. Tap one to listen at auraflowfocus.com:</p>
@@ -201,6 +234,7 @@
       <div class="streak">STREAK<b id="h-streak">0</b></div>
       <div>SCORE<b id="h-score">0</b></div>
       <div>ROUND<b id="h-round">1</b></div>
+      <div class="time" id="h-time-wrap" style="display:none;">TIME<b id="h-time">1:30</b></div>
     </div>
     <div id="nowplaying">Segment #1</div>
     <div id="progressbar"><div id="progress"></div></div>
@@ -254,11 +288,11 @@
     </div>
   </section>
 </main>
-<footer>Loop Hunter v1.6 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper, Graveyard Shift, Autumn Rain &amp; Crackling Fireplace.</footer>
+<footer>Loop Hunter v1.7 · AuraFlow — original soundscapes for sleep, focus &amp; calm, composed fresh, never loops.<br>Game audio: excerpts from Midnight Forest, Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar, Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper, Graveyard Shift, Autumn Rain &amp; Crackling Fireplace.</footer>
 
 <script>
 "use strict";
-/* ---------- Loop Hunter v1.6 ----------
+/* ---------- Loop Hunter v1.7 ----------
    Pool: 56 segments cut from real AuraFlow masters (Midnight Forest,
    Haunted Rain, Gothic Cathedral, Fog Over the Moors, The Cellar,
    Witching Hour, Pumpkin Hollow, Candlelit Seance, Lantern Keeper,
@@ -452,7 +486,11 @@ var state = {
   /* v1.3 */
   hintWin: null,      // armed hint window {start, end} on the round timeline (s)
   hintThisAttempt: false, // hint pressed during the current daily attempt
-  pbText: ""          // personal-best line earned this run, shown on the result screen
+  pbText: "",         // personal-best line earned this run, shown on the result screen
+  /* v1.7 */
+  timedEndsAt: 0,     // timed mode: wall-clock ms when the 90s clock runs out
+  timedTimer: null,   // timed mode: countdown interval id
+  timedLeft: 90       // timed mode: whole seconds remaining (display + expiry)
 };
 
 var $ = function (id) { return document.getElementById(id); };
@@ -677,7 +715,18 @@ function shuffle(a) {
 }
 
 /* Minimum unique segments before the repeat may appear — shrinks as rounds advance. */
-function minUniques(round) { return Math.max(3, 7 - round); } // r1:6 r2:5 r3:4 r4+:3
+function minUniques(round) {
+  if (state.mode === "timed") return 3; // v1.7: Timed Hunt rounds run short and fast
+  return Math.max(3, 7 - round); // r1:6 r2:5 r3:4 r4+:3
+}
+
+/* ---------- v1.7: haptic feedback (mobile UX) ----------
+   Short vibration patterns on phones that support them; a silent no-op
+   everywhere else. Catch = one tap of confirmation, false call = double
+   buzz, run over = one long buzz. Never required for play. */
+function buzz(pattern) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+}
 
 function startRound() {
   state.round++;
@@ -766,6 +815,15 @@ audio.addEventListener("ended", function () {
     /* the loop played through uncaught */
     var nm = nearMissInfo("missed", null, state.loopOffset, { dur: state.curDur });
     var atTime = state.loopOffset + state.curDur;
+    if (state.mode === "timed") {
+      /* v1.7: in Timed Hunt a slipped loop costs the round, not the run */
+      recordStatsRound("missed", null, nm.dist);
+      buzz([60, 40, 60]);
+      feedback("🌫️ That one slipped past — next round, clock still running…", false);
+      state.playing = false;
+      setTimeout(function () { if (!state.over) { feedback("", true); startRound(); } }, 1100);
+      return;
+    }
     if (state.mode === "daily") finishDaily("missed", atTime, nm);
     gameOver(false, "The loop slipped past you — that last segment was the repeat, and it played out uncaught. 🌫️", nm);
     return;
@@ -781,7 +839,7 @@ $("loopbtn").addEventListener("click", function () {
   if (state.current.isRepeat) {
     state.score++;               // the caught repeat counts as survived
     state.streak++;
-    saveBest(); updateHUD();
+    saveBest(); updateHUD(); buzz(30);
     var nm = nearMissInfo("caught", guess, state.loopOffset, {});
     /* v1.3: stats + personal best (fastest catch, by time into the round) */
     if (recordStatsRound("caught", guess, nm.dist)) {
@@ -793,6 +851,21 @@ $("loopbtn").addEventListener("click", function () {
     renderShelf();
     state.playing = false;
     audio.pause();
+    if (state.mode === "timed") {
+      /* v1.7: Timed Hunt — a catch banks the loop and the next round
+         starts fast; only the clock ends the run. */
+      feedback("🎯 Caught it! " + state.streak + " loop" + (state.streak === 1 ? "" : "s") + " banked — " + Math.max(0, state.timedLeft) + "s left.\n" + nm.text +
+               (name ? "\n🔓 Unlocked: " + name : ""), true);
+      var tbtn = $("loopbtn"); tbtn.disabled = true;
+      setTimeout(function () {
+        tbtn.disabled = false;
+        if (state.over) return;
+        if (timedSecondsLeft() <= 0) { endTimed(); return; }
+        feedback("", true);
+        startRound();
+      }, 1200);
+      return;
+    }
     if (state.mode === "daily") {
       finishDaily("caught", guess, nm);
       gameOver(true, "🎯 Caught it! That WAS today's repeat.", nm);
@@ -826,6 +899,24 @@ $("loopbtn").addEventListener("click", function () {
       for (var q2 = 0; q2 < state.repeatIn - 1 && q2 < state.queue.length; q2++) loopAt += segDur(state.queue[q2]);
     }
     var nm2 = nearMissInfo("early", guess, loopAt, { atLeast: atLeast });
+    if (state.mode === "timed") {
+      /* v1.7: Timed Hunt — a false call costs 5 seconds, not the run */
+      recordStatsRound("wolf", null, nm2.dist);
+      state.timedEndsAt -= 5000;
+      buzz([60, 40, 60]);
+      state.playing = false;
+      audio.pause();
+      feedback("🌙 False alarm — that segment was brand new. −5 seconds. Next round…", false);
+      var fbtn = $("loopbtn"); fbtn.disabled = true;
+      setTimeout(function () {
+        fbtn.disabled = false;
+        if (state.over) return;
+        if (timedSecondsLeft() <= 0) { endTimed(); return; }
+        feedback("", true);
+        startRound();
+      }, 1100);
+      return;
+    }
     if (state.mode === "daily") finishDaily("wolf", guess, nm2);
     gameOver(false, "False alarm — that segment was brand new, never played before. The stream stays undefeated… this time. 🌙", nm2);
   }
@@ -846,6 +937,8 @@ function updateHUD() {
 function gameOver(_, reason, nm) {
   state.over = true; state.playing = false;
   audio.pause();
+  if (state.timedTimer) { clearInterval(state.timedTimer); state.timedTimer = null; }
+  buzz(120);
   saveBest();
   /* v1.3: stats for run-ending outcomes (catches are recorded at the tap) */
   if (nm && nm.kind === "early") recordStatsRound("wolf", null, nm.dist);
@@ -873,6 +966,14 @@ function gameOver(_, reason, nm) {
     $("daily-sharetext").textContent = rec ? dailyShareText(rec, store, key) : "";
     $("dsharebtn").style.display = navigator.share ? "inline-block" : "none";
     $("daily-share-note").textContent = "";
+  } else if (state.mode === "timed") {
+    /* v1.7: Timed Hunt result — score is loops caught in 90 seconds */
+    var tb = timedBest();
+    $("final-score").textContent = state.streak;
+    $("final-detail").textContent =
+      "Timed Hunt: " + state.streak + " loop" + (state.streak === 1 ? "" : "s") + " caught in 90 seconds · " +
+      state.score + " segments survived · Best Timed Hunt: " + tb.best + " loop" + (tb.best === 1 ? "" : "s");
+    $("daily-card").style.display = "none";
   } else {
     $("final-score").textContent = state.score;
     $("final-detail").textContent =
@@ -898,6 +999,8 @@ function finishDaily(outcome, atTime, nm) {
 
 function startDaily() {
   var key = phoenixKey();
+  if (state.timedTimer) { clearInterval(state.timedTimer); state.timedTimer = null; }
+  $("h-time-wrap").style.display = "none";
   state.mode = "daily";
   state.dailyPlan = dailyPlan(key);
   state.script = state.dailyPlan.stream.slice();
@@ -920,6 +1023,69 @@ function startDaily() {
   nextSegment();
 }
 
+/* ---------- v1.7: Timed Hunt mode ----------
+   90 seconds on the clock; rounds run short (minUniques = 3) and a
+   catch rolls straight into the next round. A false call costs 5
+   seconds; a loop that slips past costs only the round. The clock is
+   the only thing that ends the run. Best score lives in lh_timed_v1. */
+var TIMED_SECONDS = 90;
+function timedStore() {
+  try { return JSON.parse(localStorage.getItem("lh_timed_v1") || "{}"); }
+  catch (e) { return {}; }
+}
+function timedBest() { return timedStore(); }
+function recordTimed() {
+  var s = timedStore();
+  s.played = (s.played || 0) + 1;
+  s.best = Math.max(s.best || 0, state.streak);
+  try { localStorage.setItem("lh_timed_v1", JSON.stringify(s)); } catch (e) {}
+  return s;
+}
+function renderTimedBest() {
+  var s = timedStore(), el = $("timed-best");
+  if (el) el.textContent = s.best ? "Your best Timed Hunt: " + s.best + " loop" + (s.best === 1 ? "" : "s") + " caught in 90 seconds" : "";
+}
+function timedSecondsLeft() {
+  return Math.max(0, Math.ceil((state.timedEndsAt - Date.now()) / 1000));
+}
+function renderTimedClock() {
+  state.timedLeft = timedSecondsLeft();
+  var el = $("h-time");
+  if (el) el.textContent = fmtClock(state.timedLeft);
+  var wrap = $("h-time-wrap");
+  if (wrap) wrap.classList.toggle("low", state.timedLeft <= 15);
+}
+function startTimed() {
+  if (state.timedTimer) { clearInterval(state.timedTimer); state.timedTimer = null; }
+  state.mode = "timed";
+  state.script = null;
+  state.streak = 0; state.score = 0; state.round = 0;
+  state.lastUnlock = null; state.pbText = "";
+  state.hintWin = null; state.hintThisAttempt = false;
+  usedVictims = []; // fresh victim memory per play session, as in free play
+  renderHintBtn(); // timed play stays pure: no hint button
+  $("mode-line").textContent = "⏱️ TIMED HUNT — 90 SECONDS";
+  $("h-time-wrap").style.display = "block";
+  state.timedEndsAt = Date.now() + TIMED_SECONDS * 1000;
+  state.timedLeft = TIMED_SECONDS;
+  renderTimedClock();
+  updateHUD();
+  show("game");
+  state.timedTimer = setInterval(function () {
+    renderTimedClock();
+    if (timedSecondsLeft() <= 0) endTimed();
+  }, 250);
+  startRound();
+}
+function endTimed() {
+  if (state.over) return;
+  if (state.timedTimer) { clearInterval(state.timedTimer); state.timedTimer = null; }
+  recordTimed();
+  renderTimedBest();
+  gameOver(true, "⏱️ Time! The 90 seconds are up.", null);
+}
+$("timedbtn").addEventListener("click", function () { if (waveOn) ensureWaveAudio(); startTimed(); });
+
 $("dailybtn").addEventListener("click", function () { if (waveOn) ensureWaveAudio(); startDaily(); });
 $("dcopybtn").addEventListener("click", function () {
   var text = $("daily-sharetext").textContent;
@@ -939,6 +1105,8 @@ $("dsharebtn").addEventListener("click", function () {
 
 $("startbtn").addEventListener("click", function () {
   if (waveOn) ensureWaveAudio();
+  if (state.timedTimer) { clearInterval(state.timedTimer); state.timedTimer = null; }
+  $("h-time-wrap").style.display = "none";
   state.mode = "free"; state.script = null; state.lastUnlock = null;
   state.hintWin = null; state.hintThisAttempt = false; state.pbText = "";
   renderHintBtn(); // free play stays pure: no hint button
@@ -951,6 +1119,7 @@ $("startbtn").addEventListener("click", function () {
 });
 $("againbtn").addEventListener("click", function () {
   if (state.mode === "daily") { startDaily(); return; }
+  if (state.mode === "timed") { $("share-note").textContent = ""; startTimed(); return; }
   state.lastUnlock = null; state.pbText = "";
   state.streak = 0; state.score = 0; state.round = 0;
   usedVictims = []; // v1.5: fresh victim memory per play session
@@ -961,7 +1130,9 @@ $("againbtn").addEventListener("click", function () {
 });
 
 $("sharebtn").addEventListener("click", function () {
-  var text = "I caught " + state.streak + " loop" + (state.streak === 1 ? "" : "s") +
+  var text = state.mode === "timed"
+    ? "I caught " + state.streak + " loop" + (state.streak === 1 ? "" : "s") + " in 90 seconds in Loop Hunter's Timed Hunt — the AuraFlow game that dares you to find a repeat ⏱️ " + GAME_URL
+    : "I caught " + state.streak + " loop" + (state.streak === 1 ? "" : "s") +
     " and survived " + state.score + " segments in Loop Hunter — the AuraFlow game that dares you to find a repeat 🌙 " + GAME_URL;
   if (navigator.share) {
     navigator.share({ title: "Loop Hunter 🌙", text: text }).catch(function () {});
@@ -1217,6 +1388,7 @@ $("wavebtn").addEventListener("click", function () {
 renderDailyHome();
 renderShelf();
 renderWaveBtn();
+renderTimedBest(); /* v1.7 */
 seasonalSkin();
 /* ---------- v1.3 init ---------- */
 tickCountdown();
